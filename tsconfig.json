@@ -9,12 +9,10 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "typeRoots": [
-      "./node_modules/@types",
-      "./src",
+      "./node_modules/@types"
     ]
   },
   "include": [
-    "src/**/*",
-    "src/types/globals.d.ts"
+    "src/**/*"
   ],
 }
