@@ -1,0 +1,165 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["omitApi"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                      String @id @default(uuid())
+  name                    String
+  email                   String @unique
+  avatar                  String? @default("")
+  coverImg                String? @default("")
+  password                String
+  isActive                Boolean @default(false)
+  points                  Int @default(0)
+  type                    userType
+  phoneNumber             String?
+  newsletterSubscription  Boolean @default(false)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  address                 String? @default("")
+  otp                     Otp[]
+  following               String[]
+  notifications           Notifications[]
+  reviews                 Review[]
+  saves                   SavedItem[]
+  products                Product[]
+  region                  Region? @relation(fields: [regionId], references: [id])
+  regionId                String? // Region ID is now optional
+  purchases               Product[] @relation("UserPurchases")
+}
+
+
+enum userType {
+  farmer 
+  xforce 
+  affiliate
+  wholesaler
+  buyer
+}
+
+model Product {
+  id                      String @id @unique @default(uuid())
+  category                Category @relation(fields: [categoryId], references: [id])
+  categoryId              String
+  name                    String @unique
+  slug                    String @unique @default("")
+  description             String
+  quantity                Int
+  isActive                Boolean @default(true)
+  isPromoted              Boolean? @default(false)
+  promotionLevel          promotionLevel?
+  images                  String[]
+  seller                  User @relation(fields: [sellerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  sellerId                String
+  ratings                 Float?
+  location                String 
+  region                  Region? @relation(fields: [regionId], references: [id])
+  regionId                String?
+  unit                    String @default("")
+  unitWeight              String 
+  unitPrice               Int @default(0)
+  expiryDate              DateTime? 
+  discountPercentage      Int?
+  reviews                 Review[]
+  saves                   SavedItem[]
+  tags                    Tag[]
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  buyers                  User[] @relation("UserPurchases")
+}
+
+enum promotionLevel {
+  basic
+  advance 
+  plus 
+}
+
+
+model Notifications{
+  id                    String @id @unique @default(uuid())
+  type                  notificationType 
+  isGeneral             Boolean
+  unread                Boolean @default(false)
+  subject               String
+  content               String 
+  attachment            String
+  user                  User[]
+  createdAt             DateTime @default(now())
+}
+
+enum notificationType {
+  follow
+  productReview 
+  productSave 
+  productOrder 
+  productDelivery 
+  productShipped
+}
+
+
+model Region {
+  id                    String @id @unique @default(uuid())
+  state                 String
+  lcda                  String
+  name                  String
+  lat                   Float
+  long                  Float
+  users                 User[]
+  products              Product[]
+}
+
+model Review {
+  id                    String @id @unique @default(uuid())
+  sellerId              String 
+  product               Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  productId             String 
+  user                  User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId                String 
+  rating                Float
+  subject               String 
+  description           String 
+  createdAt             DateTime @default(now())
+}
+
+model SavedItem {
+  id                    String @id @unique @default(uuid())
+  product               Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  productId             String
+  user                  User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId                String 
+  createdAt             DateTime @default(now())
+}
+
+model Category {
+  id                    String @unique @default(uuid())
+  name                  String @unique
+  slug                  String @default("")
+  products              Product[]
+}
+
+model Tag {
+  id                    String @id @unique @default(uuid())
+  product               Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  productId             String
+}
+
+model Otp{
+  id                    String @id @unique @default(uuid())
+  user                  User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId                String 
+  otp                   Int
+  createdAt             DateTime @default(now()) 
+  used                  Boolean @default(false)
+}
