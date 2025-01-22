@@ -287,6 +287,7 @@ export const getRecentProducts = async (req: Request, res: Response) => {
         in: slugs,
       },
     },
+    take: 6,
   });
 
   return res.status(200).json({
@@ -328,44 +329,50 @@ export const GetSingleProduct = async (req: Request, res: Response) => {
 
 export const GetSimilarProduct = async (req: Request, res: Response) => {
   const { slug } = req.params;
+
   validateRequiredFields([
     {
-      name: "Produc Slug",
+      name: "Product Slug",
       value: slug,
     },
   ]);
 
   const foundProduct = await prisma.product.findFirst({
-    where: {
-      slug,
-    },
-    select: {
-      categoryId: true,
-    },
+    where: { slug },
+    select: { categoryId: true },
   });
 
   if (!foundProduct) {
     throw new NotFoundException("Product not found!");
   }
 
-  // Fetch similar products
   const similarProducts = await prisma.product.findMany({
     where: {
-      slug: {
-        not: slug,
-      },
+      slug: { not: slug },
       categoryId: foundProduct.categoryId,
     },
+    take: 4,
   });
 
-  if (!similarProducts) {
-    throw new NotFoundException("No similar product");
+  const fallbackProducts =
+    similarProducts.length === 0
+      ? await prisma.product.findMany({
+          where: { slug: { not: slug } },
+          take: 4,
+        })
+      : [];
+
+  const productsToReturn =
+    similarProducts.length > 0 ? similarProducts : fallbackProducts;
+
+  if (productsToReturn.length === 0) {
+    throw new NotFoundException("No similar products found!");
   }
 
   return res.status(200).json({
     status: true,
-    message: "Smiliar products found successfully",
-    products: similarProducts,
+    message: "Similar products found successfully",
+    products: productsToReturn,
   });
 };
 
