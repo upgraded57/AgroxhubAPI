@@ -19,6 +19,33 @@ const prisma = new PrismaClient({
 });
 
 export const GetUser = async (req: Request, res: Response) => {
+  // const regions = await prisma.region.findMany();
+
+  // const newUsers = AllUsers.map(async (item) => {
+  //   const randomRegionId = Math.floor(Math.random() * regions.length);
+  //   const randomRegion = regions[randomRegionId];
+  //   try {
+  //     await prisma.user.create({
+  //       data: {
+  //         name: item.name,
+  //         email: item.name.toLowerCase().split(" ").join("_") + "@agroxhub.com",
+  //         isActive: true,
+  //         type: item.type as userType,
+  //         password: hashSync("Payboi10", 10),
+  //         region: {
+  //           connect: {
+  //             id: randomRegion.id,
+  //           },
+  //         },
+  //       },
+  //     });
+  //   } catch (error) {
+  //     console.log("Error", error);
+  //   }
+  // });
+
+  // await Promise.all(newUsers);
+
   const { userId } = req.params;
 
   if (!userId) {

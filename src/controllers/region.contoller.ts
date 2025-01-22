@@ -15,6 +15,20 @@ const prisma = new PrismaClient({
 });
 
 export const GetRegions = async (req: Request, res: Response) => {
+  // const newRegs = AllRegions.map(async (item) => {
+  //   try {
+  //     await prisma.region.create({
+  //       data: {
+  //         ...item,
+  //       },
+  //     });
+  //   } catch (error) {
+  //     console.log("Error", error);
+  //   }
+  // });
+
+  // await Promise.all(newRegs);
+
   const regions = await prisma.region.findMany({
     orderBy: {
       lcda: "asc",

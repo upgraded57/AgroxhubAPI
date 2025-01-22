@@ -8,13 +8,13 @@ const upload = multer({
   dest: "./uploads/avatars",
 });
 
+import apicache from "apicache";
+
+let cache = apicache.middleware;
+
 const router = Router();
 
-router.get(
-  "/:userId",
-  // validateAuth,
-  errorCatcher(GetUser)
-);
+router.get("/:userId", cache("5 minutes"), errorCatcher(GetUser));
 router.patch(
   "/:userId",
   validateAuth,

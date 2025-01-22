@@ -13,6 +13,7 @@ import {
 import { AllProducts } from "../helpers/products";
 import { AllCategories } from "../helpers/tags";
 import { AllImages } from "../helpers/images";
+import apicache from "apicache";
 dotenv.config({ path: "./.env" });
 
 const prisma = new PrismaClient({
@@ -20,6 +21,21 @@ const prisma = new PrismaClient({
 });
 
 export const GetAllCateories = async (req: Request, res: Response) => {
+  // const AllCats = AllCategories.map(async (item) => {
+  //   try {
+  //     await prisma.category.create({
+  //       data: {
+  //         ...item,
+  //         slug: item.name.toLowerCase().split(" ").join("_"),
+  //       },
+  //     });
+  //   } catch (error) {
+  //     console.log("Error", error);
+  //   }
+  // });
+
+  // await Promise.all(AllCats);
+
   const categories = await prisma.category.findMany();
 
   return res.status(200).json({
@@ -133,53 +149,67 @@ export const CreateProduct = async (req: Request, res: Response) => {
 };
 
 export const GetAllProducts = async (req: Request, res: Response) => {
-  // const newPs = AllProducts.map(async (item) => {
-  //   try {
-  //     const ranNum1 = Math.floor(Math.random() * AllImages.length);
-  //     const ranNum2 = Math.floor(Math.random() * AllImages.length);
-  //     const ranNum3 = Math.floor(Math.random() * AllImages.length);
-  //     const ranNum4 = Math.floor(Math.random() * AllImages.length);
-  //     await prisma.product.create({
-  //       data: {
-  //         name: item.name + "_" + Math.floor(Math.random() * 1000).toString(),
-  //         seller: {
-  //           connect: {
-  //             id: item.sellerId,
+  // const createTempProducts = async () => {
+  //   const users = await prisma.user.findMany();
+  //   const sellers = users.filter((item) => item.type !== "buyer");
+  //   const categories = await prisma.category.findMany();
+  //   const newPs = AllProducts.map(async (item) => {
+  //     try {
+  //       const ranNum1 = Math.floor(Math.random() * AllImages.length);
+  //       const ranNum2 = Math.floor(Math.random() * AllImages.length);
+  //       const ranNum3 = Math.floor(Math.random() * AllImages.length);
+  //       const ranNum4 = Math.floor(Math.random() * AllImages.length);
+  //       const randomSeller =
+  //         sellers[Math.floor(Math.random() * sellers.length)];
+  //       const randomCategory =
+  //         categories[Math.floor(Math.random() * sellers.length)];
+  //       await prisma.product.create({
+  //         data: {
+  //           name: item.name + "_" + Math.floor(Math.random() * 1000).toString(),
+  //           seller: {
+  //             connect: {
+  //               id: randomSeller.id,
+  //             },
   //           },
-  //         },
-  //         slug:
-  //           item.name.toLowerCase().split(" ").join("_") +
-  //           "_" +
-  //           Math.floor(Math.random() * 200000).toString(),
-  //         unitPrice: Math.random() * 5000,
-  //         region: {
-  //           connect: {
-  //             id: item.regionId,
+  //           slug:
+  //             item.name.toLowerCase().split(" ").join("_") +
+  //             "_" +
+  //             Math.floor(Math.random() * 200000).toString(),
+  //           unitPrice: Math.random() * 5000,
+  //           region: {
+  //             connect: {
+  //               id:
+  //                 randomSeller.regionId ??
+  //                 "0231e8e3-7296-42e5-ae9b-1baeec059e70",
+  //             },
   //           },
-  //         },
-  //         category: {
-  //           connect: {
-  //             id: item.categoryId ?? "6258991e-a7e6-4ad6-9364-ad6017dd84ea",
+  //           category: {
+  //             connect: {
+  //               id: randomCategory.id,
+  //             },
   //           },
+  //           unitWeight: item.unitWeight,
+  //           unit: item.unit,
+  //           quantity: item.quantity,
+  //           description: item.description,
+  //           location: item.location,
+  //           images: [
+  //             AllImages[ranNum1].download_url,
+  //             AllImages[ranNum2].download_url,
+  //             AllImages[ranNum3].download_url,
+  //             AllImages[ranNum4].download_url,
+  //           ],
+  //           ratings: parseInt((Math.random() * 5).toFixed(1)),
   //         },
-  //         unitWeight: item.unitWeight,
-  //         unit: item.unit,
-  //         quantity: item.quantity,
-  //         description: item.description,
-  //         location: item.location,
-  //         images: [
-  //           AllImages[ranNum1].download_url,
-  //           AllImages[ranNum2].download_url,
-  //           AllImages[ranNum3].download_url,
-  //           AllImages[ranNum4].download_url,
-  //         ],
-  //         ratings: parseInt((Math.random() * 5).toFixed(1)),
-  //       },
-  //     });
-  //   } catch (error) {}
-  // });
+  //       });
+  //     } catch (error) {
+  //       console.log("Error", error);
+  //     }
+  //   });
 
-  // await Promise.all(newPs);
+  //   await Promise.all(newPs);
+  // };
+
   const {
     currentPage = 0,
     perPage = 30,
@@ -242,6 +272,30 @@ export const GetAllProducts = async (req: Request, res: Response) => {
   });
 };
 
+export const getRecentProducts = async (req: Request, res: Response) => {
+  let { slugs } = req.query;
+
+  slugs = JSON.parse(slugs as string) as string[];
+
+  if (!slugs || slugs.length < 1) {
+    throw new BadRequestException("Product slugs are required");
+  }
+
+  const products = await prisma.product.findMany({
+    where: {
+      slug: {
+        in: slugs,
+      },
+    },
+  });
+
+  return res.status(200).json({
+    status: true,
+    message: "Products found successfully",
+    products,
+  });
+};
+
 export const GetSingleProduct = async (req: Request, res: Response) => {
   const { slug } = req.params;
   validateRequiredFields([
@@ -269,5 +323,92 @@ export const GetSingleProduct = async (req: Request, res: Response) => {
     status: true,
     message: "Product found successfully",
     product,
+  });
+};
+
+export const GetSimilarProduct = async (req: Request, res: Response) => {
+  const { slug } = req.params;
+  validateRequiredFields([
+    {
+      name: "Produc Slug",
+      value: slug,
+    },
+  ]);
+
+  const foundProduct = await prisma.product.findFirst({
+    where: {
+      slug,
+    },
+    select: {
+      categoryId: true,
+    },
+  });
+
+  if (!foundProduct) {
+    throw new NotFoundException("Product not found!");
+  }
+
+  // Fetch similar products
+  const similarProducts = await prisma.product.findMany({
+    where: {
+      slug: {
+        not: slug,
+      },
+      categoryId: foundProduct.categoryId,
+    },
+  });
+
+  if (!similarProducts) {
+    throw new NotFoundException("No similar product");
+  }
+
+  return res.status(200).json({
+    status: true,
+    message: "Smiliar products found successfully",
+    products: similarProducts,
+  });
+};
+
+export const DeleteProduct = async (req: Request, res: Response) => {
+  const { slug } = req.params;
+  const user = req.user;
+  const cache = apicache.getIndex();
+  const allCache = cache.all;
+  console.log(allCache);
+
+  validateRequiredFields([
+    {
+      name: "Product Slug",
+      value: slug,
+    },
+  ]);
+
+  const product = await prisma.product.findFirst({
+    where: {
+      slug,
+    },
+    select: {
+      id: true,
+      sellerId: true,
+    },
+  });
+
+  if (!product) {
+    throw new NotFoundException("Product not found!");
+  }
+
+  if (product.sellerId !== user?.id) {
+    throw new UnauthorizedException("This action is unauthorized!");
+  }
+
+  await prisma.product.delete({
+    where: {
+      id: product.id,
+    },
+  });
+
+  return res.status(200).json({
+    status: true,
+    message: "Product deleted successfully",
   });
 };

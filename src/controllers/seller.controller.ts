@@ -12,6 +12,7 @@ import * as dotenv from "dotenv";
 import { ServerException } from "../exceptions/server-error";
 import { AllUsers } from "../helpers/users";
 import { hashSync } from "bcrypt";
+import apicache from "apicache";
 dotenv.config({ path: "./.env" });
 
 const prisma = new PrismaClient({
@@ -20,6 +21,7 @@ const prisma = new PrismaClient({
 
 export const getSeller = async (req: Request, res: Response) => {
   const { sellerId } = req.params;
+
   validateRequiredFields([
     {
       name: "Seller Id",
@@ -95,5 +97,91 @@ export const GetSellerProducts = async (req: Request, res: Response) => {
     status: true,
     message: "Products found successfully",
     products,
+  });
+};
+
+export const GetSellerMostPurchasedProducts = async (
+  req: Request,
+  res: Response
+) => {
+  const { sellerId } = req.params;
+
+  validateRequiredFields([
+    {
+      name: "Seller Id",
+      value: sellerId,
+    },
+  ]);
+
+  const products = await prisma.product.findMany({
+    where: {
+      sellerId,
+    },
+    orderBy: {
+      purchases: "asc",
+    },
+    take: 4,
+  });
+
+  return res.status(200).json({
+    status: true,
+    message: "Seller Products found successfully",
+    products,
+  });
+};
+
+export const GetSellerNewestProducts = async (req: Request, res: Response) => {
+  const { sellerId } = req.params;
+
+  validateRequiredFields([
+    {
+      name: "Seller Id",
+      value: sellerId,
+    },
+  ]);
+
+  const products = await prisma.product.findMany({
+    where: {
+      sellerId,
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+    take: 4,
+  });
+
+  return res.status(200).json({
+    status: true,
+    message: "Seller Products found successfully",
+    products,
+  });
+};
+
+export const GetSimilarSellers = async (req: Request, res: Response) => {
+  const { sellerId } = req.params;
+
+  validateRequiredFields([
+    {
+      name: "Seller Id",
+      value: sellerId,
+    },
+  ]);
+
+  const sellers = await prisma.user.findMany({
+    where: {
+      id: {
+        not: sellerId,
+      },
+      type: {
+        in: [userType.wholesaler, userType.farmer],
+      },
+    },
+    take: 4,
+  });
+
+  return res.status(200).json({
+    status: true,
+    message: "Sellers found successfully",
+    sellers,
   });
 };
