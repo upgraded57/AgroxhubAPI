@@ -323,6 +323,7 @@ export const sendOtp = (
       console.log(error);
       return;
     } else {
+      console.log("Email Sent" + info.response);
       return "Email sent: " + info.response;
     }
   });

@@ -358,7 +358,7 @@ export const ResendOtp = async (req: Request, res: Response) => {
   // send reset otp
   const otp = await createOtp(userExists.id);
 
-  sendOtp(otp, "create", userExists.id);
+  sendOtp(otp, "create", userExists.email);
 
   res.status(200).json({
     status: true,
