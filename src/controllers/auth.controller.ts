@@ -58,6 +58,11 @@ export const Login = async (req: Request, res: Response) => {
 
   // Check if user account is active
   if (!userExists.isActive) {
+    // Create otp
+    const userOtp = await createOtp(userExists.id);
+
+    // Send otp to user
+    sendOtp(userOtp, "create", userExists.email);
     return res.status(401).json({
       status: false,
       message: "User account not active",
@@ -104,7 +109,7 @@ export const Signup = async (req: Request, res: Response) => {
   ]);
 
   // Validate fields values
-  validateFieldType("name", fullName);
+  validateFieldType("name", fullName.trim());
   validateFieldType("email", email);
   validateFieldType("password", password);
 
