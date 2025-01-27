@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, userType } from "@prisma/client";
 import { Request, Response } from "express";
 import { BadRequestException } from "../exceptions/bad-request";
 import { NotFoundException } from "../exceptions/not-found";
@@ -212,22 +212,27 @@ export const GetAllProducts = async (req: Request, res: Response) => {
 
   const {
     currentPage = 0,
-    perPage = 30,
     q,
     minPrice,
     maxPrice,
     region,
     rating,
+    seller,
     category,
   } = req.query;
 
-  const skipCount =
-    parseInt(currentPage as string) * parseInt(perPage as string);
+  const perPage = 32;
+
+  const skipCount = parseInt(currentPage as string) * perPage;
 
   const products = await prisma.product.findMany({
     where: {
       // Search by name (case-insensitive)
       name: q ? { contains: q as string, mode: "insensitive" } : undefined,
+
+      seller: {
+        type: seller ? (seller as userType) : undefined,
+      },
 
       // Filter by category (if provided)
       category: category ? { slug: category as string } : undefined,
@@ -254,7 +259,7 @@ export const GetAllProducts = async (req: Request, res: Response) => {
       // Filter by rating (if provided)
       ratings: rating ? parseInt(rating as string) : undefined,
     },
-    take: parseInt(perPage as string), // Number of items to fetch
+    take: perPage, // Number of items to fetch
     skip: skipCount, // Offset for pagination
     orderBy: { createdAt: "desc" }, // Order by the newest first
   });
