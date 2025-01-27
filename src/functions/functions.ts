@@ -140,7 +140,7 @@ export const sendOtp = (
     to: recipient,
     subject:
       type === "create"
-        ? "Complete your Agroxhub account creation"
+        ? "Welcome to Agroxhub!"
         : "Complete your Agroxhub account recovery",
     html: `<html lang="en">
               <head>
@@ -200,7 +200,7 @@ export const sendOtp = (
                         >
                           ${
                             type === "create"
-                              ? "Complete your Agroxhub account creation"
+                              ? "Welcome to Agroxhub!"
                               : "Complete your Agroxhub account recovery"
                           }
                         </h1>
@@ -222,10 +222,9 @@ export const sendOtp = (
                             letter-spacing: 0.56px;
                           "
                         >
-                          We're pleased to have you onboard our Agroxhub community. Use the following OTP to complete your account recovery. OTP
-                          is valid for
-                          <span style="font-weight: 600; color: #1f1f1f">5 minutes</span>.
-                          Do not share this OTP with others
+                          To complete your account ${
+                            type === "create" ? "creation" : "recovery"
+                          }., please use the following OTP.
                         </p>
                         
                         <p style="color: #36e18d; font-weight: bold; font-size: 1.5em">
@@ -239,7 +238,30 @@ export const sendOtp = (
                             letter-spacing: 0.56px;
                           "
                         >
-                          Didn't initiate this process? You don't have to take any action.
+                          This code is valid for
+                          <span style="font-weight: 600; color: #1f1f1f">5 minutes</span>.
+                        </p>
+
+                        <p
+                          style="
+                            margin: 0;
+                            margin-top: 17px;
+                            font-weight: 500;
+                            letter-spacing: 0.56px;
+                          "
+                        >
+                          <b>Important</b>: Keep this OTP confidential and do not share it with anyone
+                        </p>
+
+                        <p
+                          style="
+                            margin: 0;
+                            margin-top: 17px;
+                            font-weight: 500;
+                            letter-spacing: 0.56px;
+                          "
+                        >
+                          If you didn't initiate this process, you can safely ignore this message
                         </p>
                       </div>
                     </div>

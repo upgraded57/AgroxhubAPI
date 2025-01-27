@@ -121,7 +121,7 @@ export const Signup = async (req: Request, res: Response) => {
   try {
     const newUser = await prisma.user.create({
       data: {
-        name: fullName,
+        name: fullName.trim(),
         email,
         password: encryptedPassword,
         type,
