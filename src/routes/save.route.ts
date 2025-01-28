@@ -6,7 +6,7 @@ import { validateAuth } from "../middlewares/middlewares";
 
 const router = Router();
 
-router.get("/", errorCatcher(GetSavedProducts));
+router.get("/", validateAuth, errorCatcher(GetSavedProducts));
 router.post("/", validateAuth, errorCatcher(SaveProduct));
 
 export default router;

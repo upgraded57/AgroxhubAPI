@@ -15,7 +15,11 @@ const prisma = new PrismaClient({
 });
 
 export const GetSavedProducts = async (req: Request, res: Response) => {
+  const user = req.user;
   const savedProducts = await prisma.savedItem.findMany({
+    where: {
+      userId: user?.id,
+    },
     include: {
       product: true,
     },
