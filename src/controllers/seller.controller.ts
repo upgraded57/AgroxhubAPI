@@ -39,6 +39,9 @@ export const getSeller = async (req: Request, res: Response) => {
         },
       },
     },
+    omit: {
+      password: true,
+    },
   });
 
   const isSeller =
@@ -85,6 +88,19 @@ export const GetSellerProducts = async (req: Request, res: Response) => {
     },
   ]);
 
+  const seller = await prisma.user.findFirst({
+    where: {
+      id: sellerId,
+    },
+    select: {
+      name: true,
+    },
+  });
+
+  if (!seller) {
+    throw new NotFoundException("Seller not found");
+  }
+
   const products = await prisma.product.findMany({
     where: {
       seller: {
@@ -95,7 +111,8 @@ export const GetSellerProducts = async (req: Request, res: Response) => {
 
   return res.status(200).json({
     status: true,
-    message: "Products found successfully",
+    message: "Seller Products found successfully",
+    seller,
     products,
   });
 };
