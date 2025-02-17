@@ -1,18 +1,8 @@
-import { PrismaClient, userType } from "@prisma/client";
+import { Prisma, PrismaClient, userType } from "@prisma/client";
 import { Request, Response } from "express";
-import {
-  findUser,
-  uploadAvatar,
-  validateFieldType,
-  validateRequiredFields,
-} from "../functions/functions";
-import { BadRequestException } from "../exceptions/bad-request";
+import { validateRequiredFields } from "../functions/functions";
 import { NotFoundException } from "../exceptions/not-found";
 import * as dotenv from "dotenv";
-import { ServerException } from "../exceptions/server-error";
-import { AllUsers } from "../helpers/users";
-import { hashSync } from "bcrypt";
-import apicache from "apicache";
 dotenv.config({ path: "./.env" });
 
 const prisma = new PrismaClient({
@@ -80,7 +70,17 @@ export const getSellers = async (req: Request, res: Response) => {
 };
 
 export const GetSellerProducts = async (req: Request, res: Response) => {
+  const {
+    q,
+    category,
+    minPrice,
+    maxPrice,
+    rating,
+    currentPage = 0,
+  } = req.query;
+
   const { sellerId } = req.params;
+
   validateRequiredFields([
     {
       name: "User Id",
@@ -101,19 +101,64 @@ export const GetSellerProducts = async (req: Request, res: Response) => {
     throw new NotFoundException("Seller not found");
   }
 
+  const perPage = 32;
+  // Subtracting 1 from current page because frontend index is 1 more than needed
+  const skipCount =
+    currentPage === 0
+      ? currentPage * perPage
+      : (parseInt(currentPage as string) - 1) * perPage;
+
+  const whereCondition: Prisma.ProductWhereInput = {
+    name:
+      q && typeof q === "string"
+        ? { contains: q, mode: "insensitive" }
+        : undefined,
+
+    sellerId: sellerId,
+
+    category:
+      category && typeof category === "string" ? { slug: category } : undefined,
+
+    unitPrice:
+      minPrice || maxPrice
+        ? {
+            gte:
+              minPrice && typeof minPrice === "string"
+                ? parseInt(minPrice)
+                : undefined,
+            lte:
+              maxPrice && typeof maxPrice === "string"
+                ? parseInt(maxPrice)
+                : undefined,
+          }
+        : undefined,
+
+    ratings:
+      rating && typeof rating === "string" ? parseInt(rating) : undefined,
+  };
+
   const products = await prisma.product.findMany({
-    where: {
-      seller: {
-        id: sellerId,
-      },
-    },
+    where: whereCondition,
+    take: perPage,
+    skip: skipCount,
+    orderBy: { createdAt: "asc" },
   });
+
+  // Get total count of filtered products
+  const totalProducts = await prisma.product.count({
+    where: whereCondition, // Apply the same filters
+  });
+
+  // Check if there are more products
+  const hasMore = skipCount + products.length < totalProducts;
 
   return res.status(200).json({
     status: true,
     message: "Seller Products found successfully",
     seller,
     products,
+    hasMore,
+    total: totalProducts,
   });
 };
 

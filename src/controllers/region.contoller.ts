@@ -1,13 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
-import { BadRequestException } from "../exceptions/bad-request";
-import { NotFoundException } from "../exceptions/not-found";
 import * as dotenv from "dotenv";
-import { UnauthorizedException } from "../exceptions/unauthorized";
-import { ForbiddenException } from "../exceptions/forbidden";
-import { ServerException } from "../exceptions/server-error";
-import { validateRequiredFields } from "../functions/functions";
-import { AllRegions } from "../helpers/regions";
 dotenv.config({ path: "./.env" });
 
 const prisma = new PrismaClient({

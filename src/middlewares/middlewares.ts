@@ -40,6 +40,9 @@ export const validateAuth = async (
       where: {
         id: userId,
       },
+      include: {
+        cart: true,
+      },
     });
 
     if (!user) {

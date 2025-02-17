@@ -4,14 +4,11 @@ import {
   findUser,
   uploadAvatar,
   validateFieldType,
-  validateRequiredFields,
 } from "../functions/functions";
 import { BadRequestException } from "../exceptions/bad-request";
 import { NotFoundException } from "../exceptions/not-found";
 import * as dotenv from "dotenv";
 import { ServerException } from "../exceptions/server-error";
-import { AllUsers } from "../helpers/users";
-import { hashSync } from "bcrypt";
 dotenv.config({ path: "./.env" });
 
 const prisma = new PrismaClient({

@@ -1,18 +1,13 @@
-import { PrismaClient, userType } from "@prisma/client";
+import { Prisma, PrismaClient, userType } from "@prisma/client";
 import { Request, Response } from "express";
 import { BadRequestException } from "../exceptions/bad-request";
 import { NotFoundException } from "../exceptions/not-found";
 import * as dotenv from "dotenv";
 import { UnauthorizedException } from "../exceptions/unauthorized";
-import { ForbiddenException } from "../exceptions/forbidden";
-import { ServerException } from "../exceptions/server-error";
 import {
   uploadProductImages,
   validateRequiredFields,
 } from "../functions/functions";
-import { AllProducts } from "../helpers/products";
-import { AllCategories } from "../helpers/tags";
-import { AllImages } from "../helpers/images";
 import apicache from "apicache";
 dotenv.config({ path: "./.env" });
 
@@ -149,67 +144,6 @@ export const CreateProduct = async (req: Request, res: Response) => {
 };
 
 export const GetAllProducts = async (req: Request, res: Response) => {
-  // const createTempProducts = async () => {
-  //   const users = await prisma.user.findMany();
-  //   const sellers = users.filter((item) => item.type !== "buyer");
-  //   const categories = await prisma.category.findMany();
-  //   const newPs = AllProducts.map(async (item) => {
-  //     try {
-  //       const ranNum1 = Math.floor(Math.random() * AllImages.length);
-  //       const ranNum2 = Math.floor(Math.random() * AllImages.length);
-  //       const ranNum3 = Math.floor(Math.random() * AllImages.length);
-  //       const ranNum4 = Math.floor(Math.random() * AllImages.length);
-  //       const randomSeller =
-  //         sellers[Math.floor(Math.random() * sellers.length)];
-  //       const randomCategory =
-  //         categories[Math.floor(Math.random() * sellers.length)];
-  //       await prisma.product.create({
-  //         data: {
-  //           name: item.name + "_" + Math.floor(Math.random() * 1000).toString(),
-  //           seller: {
-  //             connect: {
-  //               id: randomSeller.id,
-  //             },
-  //           },
-  //           slug:
-  //             item.name.toLowerCase().split(" ").join("_") +
-  //             "_" +
-  //             Math.floor(Math.random() * 200000).toString(),
-  //           unitPrice: Math.random() * 5000,
-  //           region: {
-  //             connect: {
-  //               id:
-  //                 randomSeller.regionId ??
-  //                 "0231e8e3-7296-42e5-ae9b-1baeec059e70",
-  //             },
-  //           },
-  //           category: {
-  //             connect: {
-  //               id: randomCategory.id,
-  //             },
-  //           },
-  //           unitWeight: item.unitWeight,
-  //           unit: item.unit,
-  //           quantity: item.quantity,
-  //           description: item.description,
-  //           location: item.location,
-  //           images: [
-  //             AllImages[ranNum1].download_url,
-  //             AllImages[ranNum2].download_url,
-  //             AllImages[ranNum3].download_url,
-  //             AllImages[ranNum4].download_url,
-  //           ],
-  //           ratings: parseInt((Math.random() * 5).toFixed(1)),
-  //         },
-  //       });
-  //     } catch (error) {
-  //       console.log("Error", error);
-  //     }
-  //   });
-
-  //   await Promise.all(newPs);
-  // };
-
   const {
     currentPage = 0,
     q,
@@ -222,50 +156,65 @@ export const GetAllProducts = async (req: Request, res: Response) => {
   } = req.query;
 
   const perPage = 32;
+  // Subtracting 1 from current page because frontend index is 1 more than needed
+  const skipCount =
+    currentPage === 0
+      ? currentPage * perPage
+      : (parseInt(currentPage as string) - 1) * perPage;
 
-  const skipCount = parseInt(currentPage as string) * perPage;
+  const whereCondition: Prisma.ProductWhereInput = {
+    name:
+      q && typeof q === "string"
+        ? { contains: q, mode: "insensitive" }
+        : undefined,
 
-  const products = await prisma.product.findMany({
-    where: {
-      // Search by name (case-insensitive)
-      name: q ? { contains: q as string, mode: "insensitive" } : undefined,
+    seller:
+      seller && typeof seller === "string"
+        ? { type: seller as userType }
+        : undefined,
 
-      seller: {
-        type: seller ? (seller as userType) : undefined,
-      },
+    category:
+      category && typeof category === "string" ? { slug: category } : undefined,
 
-      // Filter by category (if provided)
-      category: category ? { slug: category as string } : undefined,
-
-      // Filter by price range (if either minPrice or maxPrice is provided)
-      unitPrice:
-        minPrice || maxPrice
-          ? {
-              gte: minPrice ? parseInt(minPrice as string) : undefined,
-              lte: maxPrice ? parseInt(maxPrice as string) : undefined,
-            }
-          : undefined,
-
-      // Filter by region (if provided)
-      region: region
+    unitPrice:
+      minPrice || maxPrice
         ? {
-            name: {
-              contains: region as string,
-              mode: "insensitive",
-            },
+            gte:
+              minPrice && typeof minPrice === "string"
+                ? parseInt(minPrice)
+                : undefined,
+            lte:
+              maxPrice && typeof maxPrice === "string"
+                ? parseInt(maxPrice)
+                : undefined,
           }
         : undefined,
 
-      // Filter by rating (if provided)
-      ratings: rating ? parseInt(rating as string) : undefined,
-    },
-    take: perPage, // Number of items to fetch
-    skip: skipCount, // Offset for pagination
-    orderBy: { createdAt: "desc" }, // Order by the newest first
+    region:
+      region && typeof region === "string"
+        ? {
+            name: { contains: region, mode: "insensitive" },
+          }
+        : undefined,
+
+    ratings:
+      rating && typeof rating === "string" ? parseInt(rating) : undefined,
+  };
+
+  // Fetch the filtered products
+  const products = await prisma.product.findMany({
+    where: whereCondition, // Apply filters
+    take: perPage,
+    skip: skipCount,
+    orderBy: { createdAt: "desc" },
+  });
+
+  // Get total count of filtered products
+  const totalProducts = await prisma.product.count({
+    where: whereCondition, // Apply the same filters
   });
 
   // Check if there are more products
-  const totalProducts = await prisma.product.count(); // Total number of products in the database
   const hasMore = skipCount + products.length < totalProducts;
 
   res.json({
@@ -273,7 +222,7 @@ export const GetAllProducts = async (req: Request, res: Response) => {
     message: "Products found successfully",
     products,
     hasMore,
-    total: totalProducts,
+    total: totalProducts, // Now shows the count of filtered products
   });
 };
 
@@ -424,3 +373,93 @@ export const DeleteProduct = async (req: Request, res: Response) => {
     message: "Product deleted successfully",
   });
 };
+
+export const EditProduct = async (req: Request, res: Response) => {
+  const { slug } = req.params;
+  // const {name, }
+  const user = req.user;
+  validateRequiredFields([
+    {
+      name: "Product slug",
+      value: slug,
+    },
+  ]);
+
+  const product = await prisma.product.findUnique({
+    where: {
+      slug,
+    },
+  });
+
+  if (!product) {
+    throw new NotFoundException("Product not found");
+  }
+
+  // Check if user owns product
+  if (user?.id !== product.sellerId) {
+    throw new UnauthorizedException("Cannot edit another seller product");
+  }
+
+
+};
+
+// const createTempProducts = async () => {
+//   const users = await prisma.user.findMany();
+//   const sellers = users.filter((item) => item.type !== "buyer");
+//   const categories = await prisma.category.findMany();
+//   const newPs = AllProducts.map(async (item) => {
+//     try {
+//       const ranNum1 = Math.floor(Math.random() * AllImages.length);
+//       const ranNum2 = Math.floor(Math.random() * AllImages.length);
+//       const ranNum3 = Math.floor(Math.random() * AllImages.length);
+//       const ranNum4 = Math.floor(Math.random() * AllImages.length);
+//       const randomSeller =
+//         sellers[Math.floor(Math.random() * sellers.length)];
+//       const randomCategory =
+//         categories[Math.floor(Math.random() * sellers.length)];
+//       await prisma.product.create({
+//         data: {
+//           name: item.name + "_" + Math.floor(Math.random() * 1000).toString(),
+//           seller: {
+//             connect: {
+//               id: randomSeller.id,
+//             },
+//           },
+//           slug:
+//             item.name.toLowerCase().split(" ").join("_") +
+//             "_" +
+//             Math.floor(Math.random() * 200000).toString(),
+//           unitPrice: Math.random() * 5000,
+//           region: {
+//             connect: {
+//               id:
+//                 randomSeller.regionId ??
+//                 "0231e8e3-7296-42e5-ae9b-1baeec059e70",
+//             },
+//           },
+//           category: {
+//             connect: {
+//               id: randomCategory.id,
+//             },
+//           },
+//           unitWeight: item.unitWeight,
+//           unit: item.unit,
+//           quantity: item.quantity,
+//           description: item.description,
+//           location: item.location,
+//           images: [
+//             AllImages[ranNum1].download_url,
+//             AllImages[ranNum2].download_url,
+//             AllImages[ranNum3].download_url,
+//             AllImages[ranNum4].download_url,
+//           ],
+//           ratings: parseInt((Math.random() * 5).toFixed(1)),
+//         },
+//       });
+//     } catch (error) {
+//       console.log("Error", error);
+//     }
+//   });
+
+//   await Promise.all(newPs);
+// };

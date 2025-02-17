@@ -36,8 +36,9 @@ model User {
   saves                   SavedItem[]
   products                Product[]
   region                  Region? @relation(fields: [regionId], references: [id])
-  regionId                String? // Region ID is now optional
+  regionId                String?
   purchases               Product[] @relation("UserPurchases")
+  cart                    Cart?
 }
 
 
@@ -79,6 +80,7 @@ model Product {
   updatedAt               DateTime @updatedAt
   buyers                  User[] @relation("UserPurchases")
   purchases               Int @default(0) 
+  cartItem                CartItem[]
 }
 
 enum promotionLevel {
@@ -86,6 +88,25 @@ enum promotionLevel {
   advance 
   plus 
 }
+
+model Cart {
+  id                      String @id @default(uuid())
+  user                    User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId                  String @unique
+  cartItems               CartItem[]
+  createdAt               DateTime @default(now())
+}
+
+model CartItem {
+  id                      String @id @default(uuid())
+  cart                    Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  cartId                  String 
+  product                 Product @relation(fields: [slug], references: [slug], onDelete: Cascade)
+  slug                    String @unique
+  quantity                Int
+  createdAt               DateTime @default(now())
+}
+
 
 
 model Notifications{

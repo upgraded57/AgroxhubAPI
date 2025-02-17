@@ -32,6 +32,9 @@ export const findUser = async (
       where: {
         id: value,
       },
+      include: {
+        cart: true,
+      },
     });
   }
 
@@ -39,6 +42,9 @@ export const findUser = async (
     user = await prisma.user.findFirst({
       where: {
         email: value,
+      },
+      include: {
+        cart: true,
       },
     });
   }
