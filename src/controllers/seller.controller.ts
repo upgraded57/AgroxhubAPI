@@ -3,6 +3,7 @@ import { Request, Response } from "express";
 import { validateRequiredFields } from "../functions/functions";
 import { NotFoundException } from "../exceptions/not-found";
 import * as dotenv from "dotenv";
+import { UnauthorizedException } from "../exceptions/unauthorized";
 dotenv.config({ path: "./.env" });
 
 const prisma = new PrismaClient({
@@ -245,5 +246,113 @@ export const GetSimilarSellers = async (req: Request, res: Response) => {
     status: true,
     message: "Sellers found successfully",
     sellers,
+  });
+};
+
+export const GetSellerFollowers = async (req: Request, res: Response) => {
+  const { sellerId } = req.params;
+
+  validateRequiredFields([
+    {
+      name: "Seller Id",
+      value: sellerId,
+    },
+  ]);
+
+  const followers = await prisma.following.findMany({
+    where: {
+      followingId: sellerId,
+    },
+    select: {
+      createdAt: true,
+      follower: {
+        select: {
+          name: true,
+          id: true,
+          avatar: true,
+        },
+      },
+    },
+  });
+
+  res.status(200).json({
+    status: true,
+    message: "Followers found successfully",
+    followers: followers?.map((item) => ({
+      name: item.follower.name,
+      id: item.follower.id,
+      createdAt: item.createdAt,
+      avatar: item.follower.avatar,
+    })),
+  });
+};
+
+export const FollowSeller = async (req: Request, res: Response) => {
+  const user = req.user;
+  const { sellerId } = req.params;
+
+  validateRequiredFields([{ name: "Seller Id", value: sellerId }]);
+  const isSeller = user?.type === "wholesaler" || user?.type === "farmer";
+  if (isSeller) {
+    throw new UnauthorizedException("Only buyers can follow sellers");
+  }
+
+  // Check if the user is already following the seller
+  const existingFollow = await prisma.following.findFirst({
+    where: {
+      followerId: user!.id,
+      followingId: sellerId,
+    },
+  });
+
+  if (existingFollow) {
+    // Unfollow the seller
+    await prisma.following.deleteMany({
+      where: {
+        followerId: user!.id,
+        followingId: sellerId,
+      },
+    });
+
+    return res.status(200).json({
+      status: true,
+      message: "Seller unfollowed successfully",
+    });
+  }
+
+  // Follow the seller
+  await prisma.following.create({
+    data: {
+      followerId: user!.id,
+      followingId: sellerId,
+    },
+  });
+
+  // Create notification of follow to seller
+
+  return res.status(200).json({
+    status: true,
+    message: "Seller followed successfully",
+  });
+};
+
+export const CheckIsFollowing = async (req: Request, res: Response) => {
+  const { sellerId } = req.params;
+  const user = req.user;
+
+  validateRequiredFields([{ name: "Seller Id", value: sellerId }]);
+
+  // Check if the user is already following the seller
+  const existingFollow = await prisma.following.findFirst({
+    where: {
+      followerId: user!.id,
+      followingId: sellerId,
+    },
+  });
+
+  res.status(200).json({
+    status: true,
+    message: "Check successful",
+    isFollowing: existingFollow ? true : false,
   });
 };

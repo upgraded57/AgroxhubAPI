@@ -30,7 +30,6 @@ model User {
   updatedAt               DateTime @updatedAt
   address                 String? @default("")
   otp                     Otp[]
-  following               String[]
   notifications           Notifications[]
   reviews                 Review[]
   saves                   SavedItem[]
@@ -39,8 +38,22 @@ model User {
   regionId                String?
   purchases               Product[] @relation("UserPurchases")
   cart                    Cart?
+
+  following   Following[] @relation("UserFollowing")
+  followers   Following[] @relation("UserFollowers")
 }
 
+model Following {
+  id         String @id @default(uuid())
+  followerId String
+  followingId String
+  createdAt  DateTime @default(now())
+
+  follower   User @relation(fields: [followerId], references: [id], name: "UserFollowers")
+  following  User @relation(fields: [followingId], references: [id], name: "UserFollowing")
+
+  @@unique([followerId, followingId]) // Prevent duplicate follows
+}
 
 enum userType {
   farmer 
@@ -49,6 +62,7 @@ enum userType {
   wholesaler
   buyer
 }
+
 
 model Product {
   id                      String @id @unique @default(uuid())

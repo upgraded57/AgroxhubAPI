@@ -58,6 +58,7 @@ export const GetUser = async (req: Request, res: Response) => {
     },
     include: {
       region: true,
+      following: true,
     },
   });
 
