@@ -329,6 +329,18 @@ export const FollowSeller = async (req: Request, res: Response) => {
   });
 
   // Create notification of follow to seller
+  await prisma.notification.create({
+    data: {
+      user: {
+        connect: {
+          id: sellerId,
+        },
+      },
+      subject: "You have a new follower",
+      type: "follow",
+      content: `A new user - ${user?.name} - just followed you. You're gaining traction!`,
+    },
+  });
 
   return res.status(200).json({
     status: true,

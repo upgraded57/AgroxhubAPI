@@ -1,0 +1,23 @@
+import { Router } from "express";
+import apicache from "apicache";
+
+let cache = apicache.middleware;
+
+import { errorCatcher } from "../middlewares/errors";
+import { validateAuth, validateSeller } from "../middlewares/middlewares";
+import {
+  GetNotifications,
+  GetSingleNotification,
+} from "../controllers/notification.controller";
+
+const router = Router();
+
+router.get("/", validateAuth, validateSeller, errorCatcher(GetNotifications));
+router.get(
+  "/:notificationId",
+  validateAuth,
+  cache("30 minutes"),
+  errorCatcher(GetSingleNotification)
+);
+
+export default router;

@@ -30,7 +30,7 @@ model User {
   updatedAt               DateTime @updatedAt
   address                 String? @default("")
   otp                     Otp[]
-  notifications           Notifications[]
+  notifications           Notification[]
   reviews                 Review[]
   saves                   SavedItem[]
   products                Product[]
@@ -95,6 +95,8 @@ model Product {
   buyers                  User[] @relation("UserPurchases")
   purchases               Int @default(0) 
   cartItem                CartItem[]
+  views                   Int @default(0)
+  clicks                  Int @default(0)
 }
 
 enum promotionLevel {
@@ -123,26 +125,29 @@ model CartItem {
 
 
 
-model Notifications{
-  id                    String @id @unique @default(uuid())
-  type                  notificationType 
-  isGeneral             Boolean
-  unread                Boolean @default(false)
-  subject               String
-  content               String 
-  attachment            String
-  user                  User[]
-  createdAt             DateTime @default(now())
+model Notification {
+  id          String   @id @default(uuid())
+  type        NotificationType
+  isGeneral   Boolean  @default(false)
+  unread      Boolean  @default(true)
+  subject     String
+  content     String
+  attachment  String?
+  user        User?    @relation(fields: [userId], references: [id])
+  userId      String? 
+  createdAt   DateTime @default(now())
 }
 
-enum notificationType {
+enum NotificationType {
   follow
   productReview 
   productSave 
   productOrder 
   productDelivery 
   productShipped
+  productClicks
 }
+
 
 
 model Region {

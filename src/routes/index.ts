@@ -7,6 +7,7 @@ import regionRoute from "./region.route";
 import sellerRoute from "./seller.route";
 import saveRoute from "./save.route";
 import cartRoute from "./cart.route";
+import notificationRoute from "./notification.route";
 
 const router = Router();
 
@@ -17,5 +18,6 @@ router.use("/region", regionRoute);
 router.use("/seller", sellerRoute);
 router.use("/saves", saveRoute);
 router.use("/cart", cartRoute);
+router.use("/notifications", notificationRoute);
 
 export default router;

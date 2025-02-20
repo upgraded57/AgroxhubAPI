@@ -253,16 +253,15 @@ export const getRecentProducts = async (req: Request, res: Response) => {
 
 export const GetSingleProduct = async (req: Request, res: Response) => {
   const { slug } = req.params;
-  validateRequiredFields([
-    {
-      name: "Produc Slug",
-      value: slug,
-    },
-  ]);
 
-  const product = await prisma.product.findFirst({
-    where: {
-      slug,
+  validateRequiredFields([{ name: "Product Slug", value: slug }]);
+
+  // Find and update the product in one query
+  const product = await prisma.product.update({
+    where: { slug },
+    data: {
+      clicks: { increment: 1 },
+      views: { increment: 1 },
     },
     include: {
       reviews: true,
@@ -270,8 +269,20 @@ export const GetSingleProduct = async (req: Request, res: Response) => {
     },
   });
 
-  if (!product) {
-    throw new NotFoundException("Product not found!");
+  // Send notification to seller when product reaches certain (e.g 10) clicks
+  if (product.clicks === 10) {
+    await prisma.notification.create({
+      data: {
+        user: {
+          connect: {
+            id: product.sellerId,
+          },
+        },
+        type: "productClicks",
+        subject: "Your product is becoming popular!",
+        content: `Your product - ${product.name} - has reached 10 clicks. Expect many orders soon!`,
+      },
+    });
   }
 
   return res.status(200).json({
@@ -399,8 +410,6 @@ export const EditProduct = async (req: Request, res: Response) => {
   if (user?.id !== product.sellerId) {
     throw new UnauthorizedException("Cannot edit another seller product");
   }
-
-
 };
 
 // const createTempProducts = async () => {

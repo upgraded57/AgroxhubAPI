@@ -1,9 +1,7 @@
 import { PrismaClient } from "@prisma/client";
-import { NotFoundException } from "../exceptions/not-found";
 import { BadRequestException } from "../exceptions/bad-request";
 import * as dotenv from "dotenv";
 import nodemailer from "nodemailer";
-import { FindUserProps } from "../types/function-types";
 import { ServerException } from "../exceptions/server-error";
 import { v2 as cloudinary } from "cloudinary";
 
@@ -163,6 +161,8 @@ export const sendOtp = (
                 style="
                   margin: 0;
                   width: 100%;
+                  max-width: 700px;
+                  margin-inlile: auto;
                   font-family: 'Inter', sans-serif;
                   background: #ffffff;
                   font-size: 14px;
@@ -230,7 +230,7 @@ export const sendOtp = (
                         >
                           To complete your account ${
                             type === "create" ? "creation" : "recovery"
-                          }., please use the following OTP.
+                          }, please use the following OTP.
                         </p>
                         
                         <p style="color: #36e18d; font-weight: bold; font-size: 1.5em">
@@ -316,7 +316,7 @@ export const sendOtp = (
                     </p>
 
                     <p style="margin: 0; margin-top: 16px; color: #434343">
-                      Copyright © 2024 Agroxhub. All rights reserved.
+                      Copyright © 2025 Agroxhub. All rights reserved.
                     </p>
                   </footer>
                 </div>

@@ -71,7 +71,9 @@ export const validateSeller = async (
   const isSeller = user?.type === "farmer" || user?.type === "wholesaler";
 
   if (!isSeller) {
-    return next(new UnauthorizedException("This action is unauthorized"));
+    return next(
+      new UnauthorizedException("This action is unauthorized to non-sellers")
+    );
   }
 
   next();
