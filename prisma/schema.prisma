@@ -38,9 +38,10 @@ model User {
   regionId                String?
   purchases               Product[] @relation("UserPurchases")
   cart                    Cart?
+  orders                  Order[]
 
-  following   Following[] @relation("UserFollowing")
-  followers   Following[] @relation("UserFollowers")
+  following               Following[] @relation("UserFollowing")
+  followers               Following[] @relation("UserFollowers")
 }
 
 model Following {
@@ -97,6 +98,7 @@ model Product {
   cartItem                CartItem[]
   views                   Int @default(0)
   clicks                  Int @default(0)
+  orders                  OrderItem[]
 }
 
 enum promotionLevel {
@@ -203,4 +205,46 @@ model Otp{
   otp                   Int
   createdAt             DateTime @default(now()) 
   used                  Boolean @default(false)
+}
+
+model Order {
+  id                    String @id @default(uuid())
+  user                  User @relation(fields: [userId], references: [id])
+  userId                String
+  items                 OrderItem[]
+  totalAmount           Float
+  status                OrderStatus @default(pending)
+  paymentStatus         PaymentStatus @default(pending)
+  deliveryAddress       String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model OrderItem {
+  id                    String @id @default(uuid())
+  order                 Order @relation(fields: [orderId], references: [id])
+  orderId               String
+  product               Product @relation(fields: [productId], references: [id])
+  productId             String
+  quantity              Int
+  unitPrice             Float
+  totalPrice            Float
+  status                OrderStatus @default(pending)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+enum OrderStatus {
+  pending
+  in_transit
+  delivered
+  rejected
+  canceled
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  failed
+  refunded
 }
