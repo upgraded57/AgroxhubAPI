@@ -39,19 +39,20 @@ model User {
   purchases               Product[] @relation("UserPurchases")
   cart                    Cart?
   orders                  Order[]
+  orderGroups             OrderGroup[]
+
 
   following               Following[] @relation("UserFollowing")
   followers               Following[] @relation("UserFollowers")
 }
 
 model Following {
-  id         String @id @default(uuid())
-  followerId String
-  followingId String
-  createdAt  DateTime @default(now())
-
-  follower   User @relation(fields: [followerId], references: [id], name: "UserFollowers")
-  following  User @relation(fields: [followingId], references: [id], name: "UserFollowing")
+  id                      String @id @default(uuid())
+  followerId              String
+  followingId             String
+  createdAt               DateTime @default(now())
+  follower                User @relation(fields: [followerId], references: [id], name: "UserFollowers")
+  following               User @relation(fields: [followingId], references: [id], name: "UserFollowing")
 
   @@unique([followerId, followingId]) // Prevent duplicate follows
 }
@@ -125,19 +126,17 @@ model CartItem {
   createdAt               DateTime @default(now())
 }
 
-
-
 model Notification {
-  id          String   @id @default(uuid())
-  type        NotificationType
-  isGeneral   Boolean  @default(false)
-  unread      Boolean  @default(true)
-  subject     String
-  content     String
-  attachment  String?
-  user        User?    @relation(fields: [userId], references: [id])
-  userId      String? 
-  createdAt   DateTime @default(now())
+  id                      String   @id @default(uuid())
+  type                    NotificationType
+  isGeneral               Boolean  @default(false)
+  unread                  Boolean  @default(true)
+  subject                 String
+  content                 String
+  attachment              String?
+  user                    User?    @relation(fields: [userId], references: [id])
+  userId                  String? 
+  createdAt               DateTime @default(now())
 }
 
 enum NotificationType {
@@ -150,17 +149,17 @@ enum NotificationType {
   productClicks
 }
 
-
-
 model Region {
-  id                    String @id @unique @default(uuid())
-  state                 String
-  lcda                  String
-  name                  String
-  lat                   Float
-  long                  Float
-  users                 User[]
-  products              Product[]
+  id                 String @id @unique @default(uuid())
+  state              String
+  lcda               String
+  name               String
+  lat                Float
+  long               Float
+  users              User[]
+  products           Product[]
+  orders             Order[]
+  logisticsProviders LogisticsProviderRegion[]
 }
 
 model Review {
@@ -207,29 +206,43 @@ model Otp{
   used                  Boolean @default(false)
 }
 
+model OrderGroup {
+  id                      String @id @default(uuid())
+  orderItems              OrderItem[] // Now linked to multiple order items of the same seller
+  seller                  User @relation(fields: [sellerId], references: [id])
+  sellerId                String
+  status                  OrderStatus @default(pending) // Track fulfillment status for this seller
+  logisticsProvider       LogisticsProvider? @relation(fields: [logisticsProviderId], references: [id])
+  logisticsProviderId     String?
+  Order                   Order[]
+}
+
 model Order {
-  id                    String @id @default(uuid())
-  user                  User @relation(fields: [userId], references: [id])
-  userId                String
-  items                 OrderItem[]
-  totalAmount           Float
-  status                OrderStatus @default(pending)
-  paymentStatus         PaymentStatus @default(pending)
-  deliveryAddress       String
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                      String @id @default(uuid())
+  user                    User @relation(fields: [userId], references: [id])
+  userId                  String
+  items                   OrderItem[]
+  totalAmount             Float
+  paymentStatus           PaymentStatus @default(pending)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  orderGroups             OrderGroup[] // A single order can have multiple orderGroups (for different sellers)
+  deliveryAddress         String
+  deliveryRegion          Region @relation(fields: [deliveryRegionId], references: [id])
+  deliveryRegionId        String
 }
 
 model OrderItem {
   id                    String @id @default(uuid())
   order                 Order @relation(fields: [orderId], references: [id])
   orderId               String
+  orderGroup            OrderGroup @relation(fields: [orderGroupId], references: [id]) // Links each item to an OrderGroup
+  orderGroupId          String
   product               Product @relation(fields: [productId], references: [id])
   productId             String
   quantity              Int
   unitPrice             Float
   totalPrice            Float
-  status                OrderStatus @default(pending)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 }
@@ -247,4 +260,22 @@ enum PaymentStatus {
   paid
   failed
   refunded
+}
+
+model LogisticsProvider {
+  id                          String @id @default(uuid())
+  name                        String
+  contact                     String
+  availableRegions            LogisticsProviderRegion[]
+  orderGroups                 OrderGroup[]
+}
+
+// Join table for many-to-many relationship
+model LogisticsProviderRegion {
+  logisticsProvider          LogisticsProvider @relation(fields: [logisticsProviderId], references: [id])
+  logisticsProviderId        String
+  region                     Region @relation(fields: [regionId], references: [id])
+  regionId                   String
+
+  @@id([logisticsProviderId, regionId]) // Composite primary key to avoid duplicates
 }
