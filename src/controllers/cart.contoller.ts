@@ -16,6 +16,7 @@ const getCartData = async (user: any, message: string, res: Response) => {
   const cart = await prisma.cart.findUnique({
     where: { userId: user?.id },
     select: {
+      id: true,
       cartItems: {
         include: {
           product: {
@@ -38,6 +39,7 @@ const getCartData = async (user: any, message: string, res: Response) => {
       unit: item.product.unit,
       image: item.product.images[0],
       price: item.quantity * item.product.unitPrice,
+      cartId: cart.id,
     })),
   });
 };
