@@ -9,6 +9,8 @@ import saveRoute from "./save.route";
 import cartRoute from "./cart.route";
 import notificationRoute from "./notification.route";
 import checkoutRoute from "./checkout.route";
+import orderRoute from "./order.route";
+import paymentRoute from "./payment.route";
 
 const router = Router();
 
@@ -21,5 +23,7 @@ router.use("/saves", saveRoute);
 router.use("/cart", cartRoute);
 router.use("/notifications", notificationRoute);
 router.use("/checkout", checkoutRoute);
+router.use("/order", orderRoute);
+router.use("/pay", paymentRoute);
 
 export default router;

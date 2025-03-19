@@ -4,14 +4,14 @@ import { errorCatcher } from "../middlewares/errors";
 import { validateAuth } from "../middlewares/middlewares";
 import {
   CreateOrder,
-  GetOrder,
+  GetSingleOrder,
   UpdateOrderItem,
 } from "../controllers/checkout.controller";
 
 const router = Router();
 
 router.post("/", validateAuth, errorCatcher(CreateOrder));
-router.get("/", validateAuth, errorCatcher(GetOrder));
+router.get("/:orderNumber", validateAuth, errorCatcher(GetSingleOrder));
 // Update order item
 router.patch("/", validateAuth, errorCatcher(UpdateOrderItem));
 

@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, User } from "@prisma/client";
 import { BadRequestException } from "../exceptions/bad-request";
 import * as dotenv from "dotenv";
 import nodemailer from "nodemailer";
@@ -381,4 +381,19 @@ export const uploadProductImages = async (images: Express.Multer.File[]) => {
   const imgPaths = await Promise.all(uploadPromises);
 
   return imgPaths;
+};
+
+export const generateOrderNumber = (user: User) => {
+  const initials =
+    user.name.toUpperCase().split("")[0] + user.name.toUpperCase().split("")[1];
+  const now = new Date();
+
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0"); // Months are zero-based
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  const seconds = String(now.getSeconds()).padStart(2, "0");
+
+  return `${initials}-${year}${month}${day}_${hours}${minutes}${seconds}`;
 };

@@ -2,7 +2,10 @@ import { PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
 import { BadRequestException } from "../exceptions/bad-request";
 import { NotFoundException } from "../exceptions/not-found";
-import { validateRequiredFields } from "../functions/functions";
+import {
+  generateOrderNumber,
+  validateRequiredFields,
+} from "../functions/functions";
 import { ServerException } from "../exceptions/server-error";
 import { UnauthorizedException } from "../exceptions/unauthorized";
 
@@ -73,7 +76,18 @@ export const CreateOrder = async (req: Request, res: Response) => {
   // Calculate vat
   const vat = 0.1 * productsAmount;
 
+  // Delete any pending user unpaid order
+  await prisma.order.deleteMany({
+    where: {
+      userId: user?.id,
+      paymentStatus: "pending",
+      status: "pending",
+    },
+  });
+
   // Step 1: Create the Order (without orderGroups)
+  const orderNumber = generateOrderNumber(user!);
+
   const order = await prisma.order.create({
     data: {
       user: { connect: { id: user?.id } },
@@ -83,6 +97,7 @@ export const CreateOrder = async (req: Request, res: Response) => {
       logisticsAmount,
       vat,
       totalAmount: productsAmount + logisticsAmount + vat,
+      orderNumber,
     },
   });
 
@@ -113,12 +128,21 @@ export const CreateOrder = async (req: Request, res: Response) => {
     .json({ status: true, message: "Order created successfully", order });
 };
 
-export const GetOrder = async (req: Request, res: Response) => {
+export const GetSingleOrder = async (req: Request, res: Response) => {
   const user = req.user!;
+  const { orderNumber } = req.params;
+
+  validateRequiredFields([
+    {
+      name: "Order Number",
+      value: orderNumber,
+    },
+  ]);
 
   const order = await prisma.order.findFirst({
     where: {
-      userId: user.id,
+      orderNumber,
+      userId: user?.id,
     },
     include: {
       deliveryRegion: true,
@@ -154,6 +178,10 @@ export const GetOrder = async (req: Request, res: Response) => {
       },
     },
   });
+
+  if (!order) {
+    throw new NotFoundException("Order not found!");
+  }
 
   return res.status(200).json({
     status: true,
