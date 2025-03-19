@@ -81,16 +81,12 @@ export const InitiatePayment = async (req: Request, res: Response) => {
 
 export const VerifyPayment = async (req: Request, res: Response) => {
   const user = req.user;
-  const { referenceCode, accessCode } = req.body;
+  const { referenceCode } = req.body;
 
   validateRequiredFields([
     {
       name: "Reference Code",
       value: referenceCode,
-    },
-    {
-      name: "Access Code",
-      value: accessCode,
     },
   ]);
 
@@ -99,16 +95,19 @@ export const VerifyPayment = async (req: Request, res: Response) => {
     where: {
       userId: user?.id,
       referenceCode: referenceCode,
-      accessCode: accessCode,
     },
   });
 
   if (!order) {
-    throw new NotFoundException("Cannot find order.");
+    throw new NotFoundException("Cannot find order");
   }
 
   if (order.paymentStatus === "paid") {
-    throw new ForbiddenException("Payment already verified!");
+    return res.status(403).json({
+      status: false,
+      message: "Payment already verified",
+      order,
+    });
   }
 
   // Send codes to paystack for verification
@@ -127,6 +126,13 @@ export const VerifyPayment = async (req: Request, res: Response) => {
         },
         data: {
           paymentStatus: "paid",
+        },
+      });
+
+      // Clear user's cart
+      await prisma.cart.deleteMany({
+        where: {
+          userId: order.userId,
         },
       });
 
