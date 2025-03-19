@@ -6,6 +6,6 @@ import { GetOrders } from "../controllers/order.controller";
 
 const router = Router();
 
-router.post("/", validateAuth, errorCatcher(GetOrders));
+router.get("/", validateAuth, errorCatcher(GetOrders));
 
 export default router;

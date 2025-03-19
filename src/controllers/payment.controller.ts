@@ -142,6 +142,14 @@ export const VerifyPayment = async (req: Request, res: Response) => {
         order: newOrder,
       });
     } else {
+      await prisma.order.update({
+        where: {
+          id: order.id,
+        },
+        data: {
+          paymentStatus: "failed",
+        },
+      });
       throw new ServerException("Payment was not completed. Please retry");
     }
   } catch (error) {
