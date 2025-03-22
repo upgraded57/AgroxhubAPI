@@ -19,13 +19,7 @@ const PORT = process.env.PORT;
 
 // Middleware
 app.use(express.json());
-app.use(
-  cors({
-    origin: "*", // Replace '*' with your client domain in production
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+app.use(cors());
 
 // Routes
 app.use("/api/v1", indexRoute);
