@@ -12,7 +12,7 @@ import {
 
 const router = Router();
 
-router.get("/", validateAuth, validateSeller, errorCatcher(GetNotifications));
+router.get("/", validateAuth, errorCatcher(GetNotifications));
 router.get(
   "/:notificationId",
   validateAuth,
