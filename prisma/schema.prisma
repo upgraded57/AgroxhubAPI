@@ -80,7 +80,7 @@ model Product {
   images                  String[]
   seller                  User @relation(fields: [sellerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   sellerId                String
-  ratings                 Float?
+  ratings                 Float @default(4)
   location                String 
   region                  Region? @relation(fields: [regionId], references: [id])
   regionId                String?
@@ -206,19 +206,6 @@ model Otp{
   used                  Boolean @default(false)
 }
 
-model OrderGroup {
-  id                      String @id @default(uuid())
-  orderItems              OrderItem[] 
-  seller                  User @relation(fields: [sellerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  sellerId                String
-  status                  OrderStatus @default(pending) 
-  logisticsProvider       LogisticsProvider? @relation(fields: [logisticsProviderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  logisticsProviderId     String?
-  Order                   Order[]
-  sellerNote              String?
-  logisticsNote           String?
-}
-
 model Order {
   id                      String @id @default(uuid())
   orderNumber             String @default("")
@@ -239,6 +226,19 @@ model Order {
   status                  OrderStatus @default(pending) 
   referenceCode           String? @unique
   accessCode              String? @unique
+}
+
+model OrderGroup {
+  id                      String @id @default(uuid())
+  orderItems              OrderItem[] 
+  seller                  User @relation(fields: [sellerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  sellerId                String
+  status                  OrderStatus @default(pending) 
+  logisticsProvider       LogisticsProvider? @relation(fields: [logisticsProviderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  logisticsProviderId     String?
+  Order                   Order[]
+  sellerNote              String?
+  logisticsNote           String?
 }
 
 model OrderItem {

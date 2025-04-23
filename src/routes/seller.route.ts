@@ -13,6 +13,7 @@ import {
   GetSellerNewestProducts,
   GetSellerProducts,
   getSellers,
+  GetSellerSummary,
   GetSimilarSellers,
 } from "../controllers/seller.controller";
 import { validateAuth, validateSeller } from "../middlewares/middlewares";
@@ -57,6 +58,13 @@ router.get(
   "/:sellerId/products/newest",
   cache("5 minutes"),
   errorCatcher(GetSellerNewestProducts)
+);
+router.get(
+  "/:sellerId/summary",
+  validateAuth,
+  validateSeller,
+  cache("5 minutes"),
+  errorCatcher(GetSellerSummary)
 );
 
 export default router;

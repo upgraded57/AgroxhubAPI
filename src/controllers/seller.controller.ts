@@ -4,11 +4,36 @@ import { validateRequiredFields } from "../functions/functions";
 import { NotFoundException } from "../exceptions/not-found";
 import * as dotenv from "dotenv";
 import { UnauthorizedException } from "../exceptions/unauthorized";
+import { ServerException } from "../exceptions/server-error";
 dotenv.config({ path: "./.env" });
 
 const prisma = new PrismaClient({
   log: ["warn", "error"],
 });
+
+const getFollowers = async (sellerId: string) => {
+  try {
+    const followers = await prisma.following.findMany({
+      where: {
+        followingId: sellerId,
+      },
+      select: {
+        createdAt: true,
+        follower: {
+          select: {
+            name: true,
+            id: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+
+    return followers;
+  } catch (error) {
+    throw new ServerException("Unable to fetch seller followers", error);
+  }
+};
 
 export const getSeller = async (req: Request, res: Response) => {
   const { sellerId } = req.params;
@@ -259,21 +284,7 @@ export const GetSellerFollowers = async (req: Request, res: Response) => {
     },
   ]);
 
-  const followers = await prisma.following.findMany({
-    where: {
-      followingId: sellerId,
-    },
-    select: {
-      createdAt: true,
-      follower: {
-        select: {
-          name: true,
-          id: true,
-          avatar: true,
-        },
-      },
-    },
-  });
+  const followers = await getFollowers(sellerId);
 
   res.status(200).json({
     status: true,
@@ -366,5 +377,67 @@ export const CheckIsFollowing = async (req: Request, res: Response) => {
     status: true,
     message: "Check successful",
     isFollowing: existingFollow ? true : false,
+  });
+};
+
+export const GetSellerSummary = async (req: Request, res: Response) => {
+  const { sellerId } = req.params;
+  const user = req.user;
+
+  validateRequiredFields([{ name: "Seller Id", value: sellerId }]);
+
+  const followers = await getFollowers(sellerId);
+  const products = await prisma.product.findMany({
+    where: {
+      sellerId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  const sellerProducts = await prisma.orderItem.findMany({
+    where: {
+      product: {
+        sellerId,
+      },
+    },
+    include: {
+      orderGroup: {
+        select: {
+          status: true,
+        },
+      },
+    },
+  });
+
+  let totalProductsPrice = 0;
+  sellerProducts.forEach((item) => {
+    totalProductsPrice += item.totalPrice;
+  });
+
+  const summary = {
+    products: products.length,
+    followers: followers.length,
+    deliveredProducts:
+      sellerProducts.filter((p) => p.orderGroup.status === "delivered")
+        .length || 0,
+    orderedProducts: sellerProducts.length || 0,
+    rejectedProducts:
+      sellerProducts.filter((p) => p.orderGroup.status === "rejected").length ||
+      0,
+    inTransitProducts:
+      sellerProducts.filter((p) => p.orderGroup.status === "in_transit")
+        .length || 0,
+    cartProducts:
+      sellerProducts.filter((p) => p.orderGroup.status === "pending").length ||
+      0,
+    totalEarnings: totalProductsPrice,
+  };
+
+  return res.status(200).json({
+    status: true,
+    message: "Seller summary found successfully",
+    summary,
   });
 };
