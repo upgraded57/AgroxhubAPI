@@ -80,7 +80,7 @@ model Product {
   images                  String[]
   seller                  User @relation(fields: [sellerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   sellerId                String
-  ratings                 Float @default(4)
+  ratings                 Float? @default(4)
   location                String 
   region                  Region? @relation(fields: [regionId], references: [id])
   regionId                String?
