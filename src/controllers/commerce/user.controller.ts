@@ -4,11 +4,11 @@ import {
   findUser,
   uploadAvatar,
   validateFieldType,
-} from "../functions/functions";
-import { BadRequestException } from "../exceptions/bad-request";
-import { NotFoundException } from "../exceptions/not-found";
+} from "../../functions/functions";
+import { BadRequestException } from "../../exceptions/bad-request";
+import { NotFoundException } from "../../exceptions/not-found";
 import * as dotenv from "dotenv";
-import { ServerException } from "../exceptions/server-error";
+import { ServerException } from "../../exceptions/server-error";
 dotenv.config({ path: "./.env" });
 
 const prisma = new PrismaClient({

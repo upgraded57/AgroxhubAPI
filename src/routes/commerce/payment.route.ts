@@ -1,11 +1,11 @@
 import { Router } from "express";
 
-import { errorCatcher } from "../middlewares/errors";
-import { validateAuth } from "../middlewares/middlewares";
+import { errorCatcher } from "../../middlewares/errors";
+import { validateAuth } from "../../middlewares/middlewares";
 import {
   InitiatePayment,
   VerifyPayment,
-} from "../controllers/payment.controller";
+} from "../../controllers/commerce/payment.controller";
 
 const router = Router();
 

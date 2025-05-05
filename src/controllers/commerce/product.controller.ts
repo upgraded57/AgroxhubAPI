@@ -1,13 +1,13 @@
 import { Prisma, PrismaClient, userType } from "@prisma/client";
 import { Request, Response } from "express";
-import { BadRequestException } from "../exceptions/bad-request";
-import { NotFoundException } from "../exceptions/not-found";
+import { BadRequestException } from "../../exceptions/bad-request";
+import { NotFoundException } from "../../exceptions/not-found";
 import * as dotenv from "dotenv";
-import { UnauthorizedException } from "../exceptions/unauthorized";
+import { UnauthorizedException } from "../../exceptions/unauthorized";
 import {
   uploadProductImages,
   validateRequiredFields,
-} from "../functions/functions";
+} from "../../functions/functions";
 import apicache from "apicache";
 dotenv.config({ path: "./.env" });
 

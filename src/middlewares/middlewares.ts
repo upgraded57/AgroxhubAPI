@@ -78,3 +78,52 @@ export const validateSeller = async (
 
   next();
 };
+
+export const validateLogisticsAuth = async (
+  req: Request,
+  _: any,
+  next: NextFunction
+) => {
+  const { authorization } = req.headers;
+  if (!authorization || typeof authorization !== "string") {
+    return next(new UnauthorizedException("Authorization token not provided"));
+  }
+
+  const token = authorization.split(" ")[1];
+
+  if (!token) {
+    return next(new UnauthorizedException("Authorization token malformed"));
+  }
+
+  try {
+    const payload = jwt.verify(
+      token,
+      process.env.JWT_KEY!
+    ) as unknown as authTokenPayload;
+
+    const { userId } = payload;
+    if (!userId) {
+      return next(new UnauthorizedException("Authorization token malformed!"));
+    }
+    const user = await prisma.logisticsProvider.findFirst({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      return next(new NotFoundException("User does not exist"));
+    }
+
+    req.userId = user.id;
+
+    next();
+  } catch (error: any) {
+    if (error.name === "TokenExpiredError") {
+      return next(
+        new UnauthorizedException("Session expired. Please login again")
+      );
+    }
+    return next(new UnauthorizedException("Authorization token malformed"));
+  }
+};

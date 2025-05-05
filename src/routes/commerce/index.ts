@@ -13,7 +13,6 @@ import orderRoute from "./order.route";
 import paymentRoute from "./payment.route";
 
 const router = Router();
-
 router.use("/auth", authRoute);
 router.use("/user", userRoute);
 router.use("/product", productRoute);

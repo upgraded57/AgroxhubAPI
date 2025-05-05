@@ -335,6 +335,219 @@ export const sendOtp = (
   });
 };
 
+export const sendActivationLink = (
+  url: string,
+  username: string,
+  type: "create" | "reset",
+  recipient: string
+) => {
+  const transporter = nodemailer.createTransport({
+    host: "wghp7.wghservers.com",
+    port: 465,
+    secure: true,
+    requireTLS: true,
+    auth: {
+      user: process.env.MAIL_SENDER,
+      pass: process.env.MAIL_PASSWORD,
+    },
+  });
+
+  const mailOptions = {
+    from: '"Agroxhub" <developer@agroxhub.com>',
+    to: recipient,
+    subject:
+      type === "create"
+        ? "Welcome to Agroxhub!"
+        : "Complete your Agroxhub account recovery",
+    html: `<html lang="en">
+              <head>
+                <meta charset="UTF-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+
+                <link
+                  href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap"
+                  rel="stylesheet"
+                />
+              </head>
+              <body
+                style="
+                  margin: 0;
+                  width: 100%;
+                  max-width: 700px;
+                  margin-inlile: auto;
+                  font-family: 'Inter', sans-serif;
+                  background: #ffffff;
+                  font-size: 14px;
+                "
+              >
+                <div
+                  style="
+                    margin: 0 auto;
+                    padding: 20px;
+                    background: #f4f7ff;
+                    background-repeat: no-repeat;
+                    background-size: 800px 452px;
+                    background-position: top center;
+                    font-size: 14px;
+                    color: #434343;
+                  "
+                >
+                  <main>
+                    <div
+                      style="
+                        margin: 0;
+                        margin-top: 20px;
+                        padding: 60px 30px;
+                        background: #ffffff;
+                        border-radius: 10px;
+                        text-align: center;
+                      "
+                    >
+                      <div style = "width: 100%; display: flex; justify-content: center; align-items: center; margin-bottom: 40px"> 
+                        <img src = "https://res.cloudinary.com/dkc54wbyx/image/upload/v1727954368/logo1_gyuktc.png" style = "width: 140px; object-fit: cover" />
+                      </div>
+                      
+                      <div style="width: 100%; max-width: 489px; margin: 0 auto">
+                        <h1
+                          style="
+                            margin: 0;
+                            font-size: 24px;
+                            font-weight: 500;
+                            color: #1f1f1f;
+                          "
+                        >Welcome to Agroxhub!
+                        </h1>
+                        <p
+                          style="
+                            margin: 0;
+                            margin-top: 17px;
+                            font-size: 16px;
+                            font-weight: 500;
+                          "
+                        >
+                          Hi, ${username}
+                        </p>
+                        <p
+                          style="
+                            margin: 0;
+                            margin-top: 17px;
+                            font-weight: 500;
+                            letter-spacing: 0.56px;
+                          "
+                        >
+                          To complete your account ${
+                            type === "create" ? "creation" : "recovery"
+                          }, please click the below button or paste the URL in your browser.
+                        </p>
+                        
+                        <a href=${url} style="background-color: #36e18d; font-weight: normal; text-decoration: none; padding: 10px 20px; color: white; display: block; width: max-content; border-radius: 8px; margin-inline:auto; margin-block: 20px">
+                          Complete Account Creation
+                        </a>
+                        
+                        <p style = "text-decoration: underline; color: #36e18d">
+                          ${url}
+                        </p>
+                        
+                        <p
+                          style="
+                            margin: 0;
+                            margin-top: 17px;
+                            font-weight: 500;
+                            letter-spacing: 0.56px;
+                          "
+                        >
+                          This link is valid for
+                          <span style="font-weight: 600; color: #1f1f1f">10 minutes</span>.
+                        </p>
+
+                        <p
+                          style="
+                            margin: 0;
+                            margin-top: 17px;
+                            font-weight: 500;
+                            letter-spacing: 0.56px;
+                          "
+                        >
+                          <b>Important</b>: Keep this link confidential and do not share it with anyone
+                        </p>
+
+                        <p
+                          style="
+                            margin: 0;
+                            margin-top: 17px;
+                            font-weight: 500;
+                            letter-spacing: 0.56px;
+                          "
+                        >
+                          If you didn't initiate this process, you can safely ignore this message
+                        </p>
+                      </div>
+                    </div>
+
+                    <p
+                      style="
+                        max-width: 400px;
+                        margin: 0 auto;
+                        margin-top: 90px;
+                        text-align: center;
+                        font-weight: 500;
+                        color: #8c8c8c;
+                      "
+                    >
+                      Need help? Ask at
+                      <a
+                        href="mailto:hello@agroxhub.com"
+                        style="color: #7286e9; text-decoration: none"
+                        >Support Center</a
+                      >
+                    </p>
+                  </main>
+
+                  <footer
+                    style="
+                      width: 100%;
+                      max-width: 490px;
+                      margin: 20px auto 0;
+                      text-align: center;
+                      border-top: 1px solid #e6ebf1;
+                    "
+                  >
+                    <p
+                      style="
+                        margin: 0;
+                        margin-top: 40px;
+                        font-size: 16px;
+                        font-weight: 600;
+                        color: #434343;
+                      "
+                    >
+                      Agroxhub
+                    </p>
+                    <p style="margin: 0; margin-top: 8px; color: #434343">
+                      Feeding the Nation, one person at a time
+                    </p>
+
+                    <p style="margin: 0; margin-top: 16px; color: #434343">
+                      Copyright © 2025 Agroxhub. All rights reserved.
+                    </p>
+                  </footer>
+                </div>
+              </body>
+            </html>`,
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.log(error);
+      return;
+    } else {
+      console.log("Email Sent" + info.response);
+      return "Email sent: " + info.response;
+    }
+  });
+};
+
 export const uploadAvatar = async (avatar: string) => {
   // Configuration
   cloudinary.config({

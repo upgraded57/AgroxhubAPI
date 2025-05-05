@@ -3,7 +3,7 @@ import apicache from "apicache";
 
 let cache = apicache.middleware;
 
-import { errorCatcher } from "../middlewares/errors";
+import { errorCatcher } from "../../middlewares/errors";
 import {
   CreateProduct,
   DeleteProduct,
@@ -12,8 +12,8 @@ import {
   getRecentProducts,
   GetSimilarProduct,
   GetSingleProduct,
-} from "../controllers/product.controller";
-import { validateAuth, validateSeller } from "../middlewares/middlewares";
+} from "../../controllers/commerce/product.controller";
+import { validateAuth, validateSeller } from "../../middlewares/middlewares";
 import multer from "multer";
 const upload = multer({
   dest: "./uploads/product-images",

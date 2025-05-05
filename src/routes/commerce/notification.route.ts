@@ -3,12 +3,12 @@ import apicache from "apicache";
 
 let cache = apicache.middleware;
 
-import { errorCatcher } from "../middlewares/errors";
-import { validateAuth, validateSeller } from "../middlewares/middlewares";
+import { errorCatcher } from "../../middlewares/errors";
+import { validateAuth, validateSeller } from "../../middlewares/middlewares";
 import {
   GetNotifications,
   GetSingleNotification,
-} from "../controllers/notification.controller";
+} from "../../controllers/commerce/notification.controller";
 
 const router = Router();
 

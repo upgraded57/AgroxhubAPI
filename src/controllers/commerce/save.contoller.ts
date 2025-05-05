@@ -1,8 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
-import { NotFoundException } from "../exceptions/not-found";
+import { NotFoundException } from "../../exceptions/not-found";
 import * as dotenv from "dotenv";
-import { validateRequiredFields } from "../functions/functions";
+import { validateRequiredFields } from "../../functions/functions";
 dotenv.config({ path: "./.env" });
 
 const prisma = new PrismaClient({

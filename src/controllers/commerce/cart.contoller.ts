@@ -1,10 +1,10 @@
 import { PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
-import { BadRequestException } from "../exceptions/bad-request";
-import { NotFoundException } from "../exceptions/not-found";
+import { BadRequestException } from "../../exceptions/bad-request";
+import { NotFoundException } from "../../exceptions/not-found";
 import * as dotenv from "dotenv";
-import { validateRequiredFields } from "../functions/functions";
-import { CartItemType } from "../types/cartItemType";
+import { validateRequiredFields } from "../../functions/functions";
+import { CartItemType } from "../../types/cartItemType";
 dotenv.config({ path: "./.env" });
 
 const prisma = new PrismaClient({

@@ -3,7 +3,7 @@ import apicache from "apicache";
 
 let cache = apicache.middleware;
 
-import { errorCatcher } from "../middlewares/errors";
+import { errorCatcher } from "../../middlewares/errors";
 import {
   CheckIsFollowing,
   FollowSeller,
@@ -15,8 +15,8 @@ import {
   getSellers,
   GetSellerSummary,
   GetSimilarSellers,
-} from "../controllers/seller.controller";
-import { validateAuth, validateSeller } from "../middlewares/middlewares";
+} from "../../controllers/commerce/seller.controller";
+import { validateAuth, validateSeller } from "../../middlewares/middlewares";
 
 const router = Router();
 

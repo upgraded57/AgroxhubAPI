@@ -1,8 +1,8 @@
 import { Prisma, PrismaClient, userType } from "@prisma/client";
 import { Request, Response } from "express";
-import { validateRequiredFields } from "../functions/functions";
-import { NotFoundException } from "../exceptions/not-found";
-import { UnauthorizedException } from "../exceptions/unauthorized";
+import { validateRequiredFields } from "../../functions/functions";
+import { NotFoundException } from "../../exceptions/not-found";
+import { UnauthorizedException } from "../../exceptions/unauthorized";
 import * as dotenv from "dotenv";
 dotenv.config({ path: "./.env" });
 

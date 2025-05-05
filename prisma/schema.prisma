@@ -159,14 +159,17 @@ model Region {
   users              User[]
   products           Product[]
   orders             Order[]
+  logisticRegion     LogisticsProvider[]
   logisticsProviders LogisticsProviderRegion[]
 }
 
 model Review {
   id                    String @id @unique @default(uuid())
   sellerId              String 
-  product               Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  productId             String 
+  product               Product? @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  productId             String? 
+  logistic              LogisticsProvider? @relation(fields: [logisticsProviderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  logisticsProviderId   String?
   user                  User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId                String 
   rating                Float
@@ -189,6 +192,7 @@ model Category {
   name                  String @unique
   slug                  String @default("")
   products              Product[]
+  logisticCategory      LogisticsProviderCategory[]
 }
 
 model Tag {
@@ -239,6 +243,12 @@ model OrderGroup {
   Order                   Order[]
   sellerNote              String?
   logisticsNote           String?
+  pickupDate              DateTime?
+  deliveryDate            DateTime?
+  logisticsCost           Int? // Calculated in kobo
+  orderCompletionCode     Int @default(000000)
+  pickupImages            String[]
+  pickupTime              DateTime?
 }
 
 model OrderItem {
@@ -274,9 +284,19 @@ enum PaymentStatus {
 model LogisticsProvider {
   id                          String @id @default(uuid())
   name                        String
-  contact                     String
+  email                       String @unique
+  password                    String
+  isActive                    Boolean @default(false)
+  contact                     String?
+  avatar                      String?
+  address                     String?
   availableRegions            LogisticsProviderRegion[]
   orderGroups                 OrderGroup[]
+  logisticCategories          LogisticsProviderCategory[]
+  review                      Review[]
+  region                      Region? @relation(fields: [regionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  regionId                    String?
+  isVisible                   Boolean @default(true)
 }
 
 // Join table for many-to-many relationship
@@ -287,4 +307,15 @@ model LogisticsProviderRegion {
   regionId                   String
 
   @@id([logisticsProviderId, regionId]) // Composite primary key to avoid duplicates
+}
+
+// Join table for many-to-many relationship
+model LogisticsProviderCategory {
+  logisticsProvider          LogisticsProvider @relation(fields: [logisticsProviderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  logisticsProviderId        String
+  category                   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  categoryId                 String
+  unitCost                   Int // Calculated in kobo
+
+  @@id([logisticsProviderId, categoryId]) // Composite primary key to avoid duplicates
 }

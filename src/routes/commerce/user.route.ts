@@ -1,8 +1,8 @@
 import { Router } from "express";
 
-import { errorCatcher } from "../middlewares/errors";
-import { EditUser, GetUser } from "../controllers/user.controller";
-import { validateAuth } from "../middlewares/middlewares";
+import { errorCatcher } from "../../middlewares/errors";
+import { EditUser, GetUser } from "../../controllers/commerce/user.controller";
+import { validateAuth } from "../../middlewares/middlewares";
 import multer from "multer";
 const upload = multer({
   dest: "./uploads/avatars",

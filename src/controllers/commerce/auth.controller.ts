@@ -6,15 +6,15 @@ import {
   sendOtp,
   validateFieldType,
   validateRequiredFields,
-} from "../functions/functions";
-import { BadRequestException } from "../exceptions/bad-request";
-import { NotFoundException } from "../exceptions/not-found";
+} from "../../functions/functions";
+import { BadRequestException } from "../../exceptions/bad-request";
+import { NotFoundException } from "../../exceptions/not-found";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import * as dotenv from "dotenv";
-import { UnauthorizedException } from "../exceptions/unauthorized";
-import { ForbiddenException } from "../exceptions/forbidden";
-import { ServerException } from "../exceptions/server-error";
+import { UnauthorizedException } from "../../exceptions/unauthorized";
+import { ForbiddenException } from "../../exceptions/forbidden";
+import { ServerException } from "../../exceptions/server-error";
 dotenv.config({ path: "./.env" });
 
 const prisma = new PrismaClient({

@@ -7,8 +7,8 @@ import {
   Signup,
   VerifyOtp,
   VerifyResetOtp,
-} from "../controllers/auth.controller";
-import { errorCatcher } from "../middlewares/errors";
+} from "../../controllers/commerce/auth.controller";
+import { errorCatcher } from "../../middlewares/errors";
 
 const router = Router();
 
