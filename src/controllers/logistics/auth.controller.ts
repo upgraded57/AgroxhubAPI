@@ -133,7 +133,7 @@ export const Register = async (req: Request, res: Response) => {
       { expiresIn: "10m" }
     );
 
-    const url = `https://logistics.agroxhub.com/auth/verify-email?token=${token}&type=create`;
+    const url = `https://agroxhub-logistcs.vercel.app/auth/verify-email?token=${token}&type=create`;
     sendActivationLink(url, newUser.name, "create", newUser.email);
 
     // Send response to user
@@ -334,7 +334,7 @@ export const ResendActivationLink = async (req: Request, res: Response) => {
     { expiresIn: "10m" }
   );
 
-  const url = `https://logistics.agroxhub.com/auth/verify-email?token=${newToken}&type=create`;
+  const url = `https://agroxhub-logistcs.vercel.app/auth/verify-email?token=${token}&type=create`;
   sendActivationLink(url, user.name, "create", user.email);
 
   return res.status(200).json({
