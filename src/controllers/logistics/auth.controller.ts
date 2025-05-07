@@ -13,6 +13,7 @@ import jwt, { JsonWebTokenError, JwtPayload } from "jsonwebtoken";
 import * as dotenv from "dotenv";
 import { ForbiddenException } from "../../exceptions/forbidden";
 import { ServerException } from "../../exceptions/server-error";
+import { UnauthorizedException } from "../../exceptions/unauthorized";
 dotenv.config({ path: "./.env" });
 
 const prisma = new PrismaClient({
@@ -53,6 +54,12 @@ export const Login = async (req: Request, res: Response) => {
     throw new NotFoundException("User does not exist");
   }
 
+  if (!userExists.isActive) {
+    throw new UnauthorizedException(
+      "User account not active yet. Please use activation link in email to activate account"
+    );
+  }
+
   // Check password
   const passwordCorrect = bcrypt.compareSync(password, userExists.password);
   if (!passwordCorrect) {
@@ -69,7 +76,7 @@ export const Login = async (req: Request, res: Response) => {
 
   res.status(200).json({
     status: true,
-    message: "User logged in successfully",
+    message: "Login successfully. Good to have you back",
     userId: userExists.id,
     token,
   });
