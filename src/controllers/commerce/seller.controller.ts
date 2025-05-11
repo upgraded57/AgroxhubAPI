@@ -275,16 +275,16 @@ export const GetSimilarSellers = async (req: Request, res: Response) => {
 };
 
 export const GetSellerFollowers = async (req: Request, res: Response) => {
-  const { sellerId } = req.params;
+  const sellerId = req.user?.id;
 
   validateRequiredFields([
     {
       name: "Seller Id",
-      value: sellerId,
+      value: sellerId!,
     },
   ]);
 
-  const followers = await getFollowers(sellerId);
+  const followers = await getFollowers(sellerId!);
 
   res.status(200).json({
     status: true,
@@ -381,8 +381,7 @@ export const CheckIsFollowing = async (req: Request, res: Response) => {
 };
 
 export const GetSellerSummary = async (req: Request, res: Response) => {
-  const { sellerId } = req.params;
-  const user = req.user;
+  const sellerId = req.user?.id!;
 
   validateRequiredFields([{ name: "Seller Id", value: sellerId }]);
 

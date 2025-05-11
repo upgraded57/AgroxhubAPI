@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient, userType } from "@prisma/client";
+import { Prisma, PrismaClient, Product, userType } from "@prisma/client";
 import { Request, Response } from "express";
 import { BadRequestException } from "../../exceptions/bad-request";
 import { NotFoundException } from "../../exceptions/not-found";
@@ -269,6 +269,10 @@ export const GetSingleProduct = async (req: Request, res: Response) => {
     },
   });
 
+  if (!product) {
+    throw new NotFoundException("Product not found");
+  }
+
   // Send notification to seller when product reaches certain (e.g 10) clicks
   if (product.clicks === 10) {
     await prisma.notification.create({
@@ -307,37 +311,26 @@ export const GetSimilarProduct = async (req: Request, res: Response) => {
     select: { categoryId: true },
   });
 
+  let similarProducts: Product[];
+
   if (!foundProduct) {
-    throw new NotFoundException("Product not found!");
-  }
-
-  const similarProducts = await prisma.product.findMany({
-    where: {
-      slug: { not: slug },
-      categoryId: foundProduct.categoryId,
-    },
-    take: 4,
-  });
-
-  const fallbackProducts =
-    similarProducts.length === 0
-      ? await prisma.product.findMany({
-          where: { slug: { not: slug } },
-          take: 4,
-        })
-      : [];
-
-  const productsToReturn =
-    similarProducts.length > 0 ? similarProducts : fallbackProducts;
-
-  if (productsToReturn.length === 0) {
-    throw new NotFoundException("No similar products found!");
+    similarProducts = await prisma.product.findMany({
+      take: 4,
+    });
+  } else {
+    similarProducts = await prisma.product.findMany({
+      where: {
+        slug: { not: slug },
+        categoryId: foundProduct.categoryId,
+      },
+      take: 4,
+    });
   }
 
   return res.status(200).json({
     status: true,
     message: "Similar products found successfully",
-    products: productsToReturn,
+    products: similarProducts,
   });
 };
 

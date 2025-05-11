@@ -43,38 +43,15 @@ export const GetUser = async (req: Request, res: Response) => {
 
   // await Promise.all(newUsers);
 
-  const { userId } = req.params;
-
-  if (!userId) {
-    throw new BadRequestException("User Id required");
-  }
-
-  const foundUser = await prisma.user.findFirst({
-    where: {
-      id: userId,
-    },
-    omit: {
-      password: true,
-    },
-    include: {
-      region: true,
-      following: true,
-    },
-  });
-
-  if (!foundUser) {
-    throw new NotFoundException("User not found");
-  }
-
   return res.status(200).json({
     status: true,
     message: "User found successfully",
-    user: foundUser,
+    user: req.user,
   });
 };
 
 export const EditUser = async (req: Request, res: Response) => {
-  const { userId } = req.params;
+  const userId = req.user?.id;
   const {
     fullName: newName,
     email: newEmail,

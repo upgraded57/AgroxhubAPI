@@ -14,9 +14,9 @@ let cache = apicache.middleware;
 
 const router = Router();
 
-router.get("/:userId", cache("5 minutes"), errorCatcher(GetUser));
+router.get("/", cache("5 minutes"), validateAuth, errorCatcher(GetUser));
 router.patch(
-  "/:userId",
+  "/",
   validateAuth,
   upload.single("avatar"),
   errorCatcher(EditUser)

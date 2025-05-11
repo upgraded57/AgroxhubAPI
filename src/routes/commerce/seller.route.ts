@@ -22,6 +22,22 @@ const router = Router();
 
 router.get("/", errorCatcher(getSellers));
 
+router.get(
+  "/summary/",
+  validateAuth,
+  validateSeller,
+  cache("5 minutes"),
+  errorCatcher(GetSellerSummary)
+);
+
+router.get(
+  "/followers/",
+  validateAuth,
+  validateSeller,
+  cache("5 minutes"),
+  errorCatcher(GetSellerFollowers)
+);
+
 router.get("/:sellerId", cache("5 minutes"), errorCatcher(getSeller));
 
 router.get("/:sellerId/similar", errorCatcher(GetSimilarSellers));
@@ -32,14 +48,6 @@ router.get(
   "/:sellerId/isFollowing",
   validateAuth,
   errorCatcher(CheckIsFollowing)
-);
-
-router.get(
-  "/:sellerId/followers",
-  validateAuth,
-  validateSeller,
-  cache("5 minutes"),
-  errorCatcher(GetSellerFollowers)
 );
 
 router.get(
@@ -58,13 +66,6 @@ router.get(
   "/:sellerId/products/newest",
   cache("5 minutes"),
   errorCatcher(GetSellerNewestProducts)
-);
-router.get(
-  "/:sellerId/summary",
-  validateAuth,
-  validateSeller,
-  cache("5 minutes"),
-  errorCatcher(GetSellerSummary)
 );
 
 export default router;

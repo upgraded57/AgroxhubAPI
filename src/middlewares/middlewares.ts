@@ -42,6 +42,7 @@ export const validateAuth = async (
       },
       include: {
         cart: true,
+        region: true,
       },
     });
 
