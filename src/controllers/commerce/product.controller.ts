@@ -220,7 +220,7 @@ export const GetAllProducts = async (req: Request, res: Response) => {
     message: "Products found successfully",
     products,
     hasMore,
-    total: totalProducts, // Now shows the count of filtered products
+    total: totalProducts,
   });
 };
 

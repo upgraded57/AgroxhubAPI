@@ -543,6 +543,13 @@ export const GetOrderLogisticsProviders = async (
 ) => {
   const { groupId } = req.params;
 
+  validateRequiredFields([
+    {
+      name: "Group Id",
+      value: groupId,
+    },
+  ]);
+
   const group = await prisma.orderGroup.findUnique({
     where: {
       id: groupId,
@@ -570,10 +577,14 @@ export const GetOrderLogisticsProviders = async (
     throw new NotFoundException("Order group not found");
   }
 
+  if (group.seller.regionId === null) {
+    throw new BadRequestException("Cannot determine product region");
+  }
+
   const allProviderRegions = await prisma.logisticsProviderRegion.findMany({
     where: {
       regionId: {
-        in: [...group.seller.regionId!, group.order.deliveryRegionId],
+        in: [group.seller.regionId, group.order.deliveryRegionId],
       },
     },
   });
@@ -599,7 +610,9 @@ export const GetOrderLogisticsProviders = async (
     deliveryRegionProviders.includes(id)
   );
 
-  if (eligibleProviders.length === 0) return;
+  if (eligibleProviders.length === 0) {
+    throw new NotFoundException("No logistic provider for this route");
+  }
 
   // Fetch provider-category-unitCost mapping
   const providerCategoryMatches =
@@ -635,19 +648,22 @@ export const GetOrderLogisticsProviders = async (
   }
 
   // Now calculate total logistics cost for this group
-  // const logisticsPricingMap = providerCategoryMatches
-  //   .filter((p) => p.logisticsProviderId === selectedProviderId)
-  //   .reduce((acc, curr) => {
-  //     acc[curr.categoryId] = curr.unitCost;
-  //     return acc;
-  //   }, {} as Record<string, number>);
+  const totalCost = fullyEligibleProviders.map((providerId) => {
+    const logisticsPricingMap = providerCategoryMatches
+      .filter((p) => p.logisticsProviderId === providerId)
+      .reduce((acc, curr) => {
+        acc[curr.categoryId] = curr.unitCost;
+        return acc;
+      }, {} as Record<string, number>);
 
-  // let totalLogisticsCost = 0;
-  // for (const item of group.orderItems) {
-  //   const categoryId = item.product.categoryId;
-  //   const unitCost = logisticsPricingMap[categoryId] || 0;
-  //   totalLogisticsCost += unitCost * item.quantity;
-  // }
+    let totalLogisticsCost = 0;
+    for (const item of group.orderItems) {
+      const categoryId = item.product.categoryId;
+      const unitCost = logisticsPricingMap[categoryId] || 0;
+      totalLogisticsCost += unitCost * item.quantity;
+    }
+    return { providerId, totalLogisticsCost };
+  });
 
   const providers = await prisma.logisticsProvider.findMany({
     where: {
@@ -655,11 +671,23 @@ export const GetOrderLogisticsProviders = async (
         in: fullyEligibleProviders,
       },
     },
+    omit: {
+      password: true,
+    },
   });
 
   return res.status(200).json({
     status: true,
     message: "logistics providers found successfully",
-    providers,
+    providers: providers.map((provider) => {
+      const providerCost = totalCost.find(
+        (el) => el.providerId === provider.id
+      );
+
+      return {
+        ...provider,
+        logisticCost: providerCost?.totalLogisticsCost,
+      };
+    }),
   });
 };
