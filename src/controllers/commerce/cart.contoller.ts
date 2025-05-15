@@ -142,19 +142,44 @@ export const AddItemToCart = async (req: Request, res: Response) => {
     create: { user: { connect: { id: user?.id } } },
   });
 
-  // Add or Update Cart Item
+  // // Add or Update Cart Item
+  // const data = await prisma.cartItem.upsert({
+  //   where: { cartId: userCart.id, slug },
+  //   update: { quantity: parseInt(quantity) },
+  //   create: { slug, quantity: parseInt(quantity), cartId: userCart.id },
+  // });
+
+  // check if cartItem is in user cart
   await prisma.cartItem.upsert({
-    where: { slug },
-    update: { quantity: parseInt(quantity) },
-    create: { slug, quantity: parseInt(quantity), cartId: userCart.id },
+    where: {
+      slug_cartId: {
+        slug,
+        cartId: userCart.id,
+      },
+    },
+    update: {
+      quantity: parseInt(quantity),
+    },
+    create: {
+      product: {
+        connect: { slug },
+      },
+      cart: {
+        connect: { id: userCart.id },
+      },
+      quantity: parseInt(quantity),
+    },
   });
 
   getCartData(user, "Product added to cart", res);
 };
 
-export const RemoveItemFromCart = async (req: Request, res: Response) => {
+export const UpdateCartItem = async (req: Request, res: Response) => {
   const user = req.user;
-  const { slug } = req.params;
+  const {
+    slug,
+    type,
+  }: { slug: string; type: "increment" | "decrement" | "delete" } = req.body;
 
   validateRequiredFields([{ name: "Product Slug", value: slug }]);
 
@@ -164,7 +189,7 @@ export const RemoveItemFromCart = async (req: Request, res: Response) => {
       cart: { userId: user?.id },
       slug,
     },
-    select: { id: true }, // Only select the ID to optimize query
+    select: { id: true, quantity: true },
   });
 
   // If product is not in cart, return error
@@ -172,10 +197,29 @@ export const RemoveItemFromCart = async (req: Request, res: Response) => {
     throw new NotFoundException("Product not in cart");
   }
 
-  // Remove item from cart
-  await prisma.cartItem.delete({
-    where: { id: cartItem.id },
-  });
+  if (type === "decrement" && cartItem.quantity <= 1) {
+    throw new BadRequestException("Cannot decrease product quantity below 1");
+  }
 
-  getCartData(user, "Product removed from cart", res);
+  if (type === "increment" && cartItem.quantity >= 10) {
+    throw new BadRequestException("Cannot increase product quantity beyond 10");
+  }
+
+  // Update quantity
+  if (type !== "delete") {
+    await prisma.cartItem.update({
+      where: { id: cartItem.id },
+      data: {
+        quantity: {
+          ...(type === "increment" ? { increment: 1 } : {}),
+          ...(type === "decrement" ? { decrement: 1 } : {}),
+        },
+      },
+    });
+  } else {
+    await prisma.orderItem.delete({
+      where: { id: cartItem.id },
+    });
+  }
+  getCartData(user, "Product quantity updated", res);
 };

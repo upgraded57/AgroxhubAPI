@@ -131,3 +131,18 @@ export const EditUser = async (req: Request, res: Response) => {
     throw new ServerException("Unable to update user account", error);
   }
 };
+
+export const GetAllUsers = async (req: Request, res: Response) => {
+  const users = await prisma.user.findMany();
+  return res.status(200).json({ users });
+};
+
+export const CreateUsers = async (req: Request, res: Response) => {
+  const { users } = req.body;
+
+  const createdUsers = await prisma.user.createMany({
+    data: users,
+  });
+
+  return res.status(200).json({ createdUsers });
+};

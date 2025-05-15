@@ -113,7 +113,7 @@ export const UpdateProfile = async (req: Request, res: Response) => {
     data: {
       name: name ? name : undefined,
       email: email ? email : undefined,
-      contact: contact ? contact : undefined,
+      phone: contact ? contact : undefined,
       address: address ? address : undefined,
       regionId: regionId ? regionId : undefined,
     },

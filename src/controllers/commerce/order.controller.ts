@@ -69,3 +69,48 @@ export const GetOrders = async (req: Request, res: Response) => {
     })),
   });
 };
+
+export const AddOrderNotes = async (req: Request, res: Response) => {
+  const { orderNumber } = req.params;
+  const { logisticsNote, sellerNote } = req.body;
+  const user = req.user!;
+
+  if (!logisticsNote && !sellerNote) {
+    throw new BadRequestException("Please provide notes");
+  }
+  // fetch order
+  const order = await prisma.order.findFirst({
+    where: {
+      orderNumber,
+    },
+    select: {
+      id: true,
+      userId: true,
+    },
+  });
+
+  if (!order) {
+    throw new NotFoundException("Order not found");
+  }
+
+  // Check if user owns order
+  if (order.userId !== user.id) {
+    throw new UnauthorizedException("Cannot update another user's order");
+  }
+
+  // Update notes
+  await prisma.order.update({
+    where: {
+      id: order.id,
+    },
+    data: {
+      sellerNote: sellerNote ?? undefined,
+      logisticsNote: logisticsNote ?? undefined,
+    },
+  });
+
+  return res.status(200).json({
+    status: true,
+    message: "Notes added to order successfully",
+  });
+};

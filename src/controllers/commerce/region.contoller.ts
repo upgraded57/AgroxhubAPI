@@ -33,3 +33,13 @@ export const GetRegions = async (req: Request, res: Response) => {
     regions,
   });
 };
+
+export const CreateRegions = async (req: Request, res: Response) => {
+  const { regions } = req.body;
+
+  const createdRegions = await prisma.region.createMany({
+    data: regions,
+  });
+
+  return res.status(200).json({ createdRegions });
+};

@@ -16,6 +16,7 @@ export const validateAuth = async (
   next: NextFunction
 ) => {
   const { authorization } = req.headers;
+
   if (!authorization || typeof authorization !== "string") {
     return next(new UnauthorizedException("Authorization token not provided"));
   }

@@ -1,7 +1,12 @@
 import { Router } from "express";
 
 import { errorCatcher } from "../../middlewares/errors";
-import { EditUser, GetUser } from "../../controllers/commerce/user.controller";
+import {
+  // CreateUsers,
+  EditUser,
+  GetAllUsers,
+  GetUser,
+} from "../../controllers/commerce/user.controller";
 import { validateAuth } from "../../middlewares/middlewares";
 import multer from "multer";
 const upload = multer({
@@ -14,7 +19,9 @@ let cache = apicache.middleware;
 
 const router = Router();
 
-router.get("/", cache("5 minutes"), validateAuth, errorCatcher(GetUser));
+router.get("/", validateAuth, errorCatcher(GetUser));
+// router.post("/", cache("5 minutes"), errorCatcher(CreateUsers));
+router.get("/all", errorCatcher(GetAllUsers));
 router.patch(
   "/",
   validateAuth,

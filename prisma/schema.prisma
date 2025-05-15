@@ -121,9 +121,11 @@ model CartItem {
   cart                    Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
   cartId                  String 
   product                 Product @relation(fields: [slug], references: [slug], onDelete: Cascade)
-  slug                    String @unique
+  slug                    String
   quantity                Int
   createdAt               DateTime @default(now())
+
+  @@unique([slug, cartId]) // This enables upsert on these two fields
 }
 
 model Notification {
@@ -230,6 +232,8 @@ model Order {
   status                  OrderStatus @default(pending) 
   referenceCode           String? @unique
   accessCode              String? @unique
+  sellerNote              String?
+  logisticsNote           String?
 }
 
 model OrderGroup {
@@ -240,13 +244,12 @@ model OrderGroup {
   status                  OrderStatus @default(pending) 
   logisticsProvider       LogisticsProvider? @relation(fields: [logisticsProviderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   logisticsProviderId     String?
-  Order                   Order[]
-  sellerNote              String?
-  logisticsNote           String?
+  order                   Order @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  orderId                 String
   pickupDate              DateTime?
   deliveryDate            DateTime?
   logisticsCost           Int? // Calculated in kobo
-  orderCompletionCode     Int @default(000000)
+  orderCompletionCode     Int
   pickupImages            String[]
   pickupTime              DateTime?
 }
@@ -287,7 +290,7 @@ model LogisticsProvider {
   email                       String @unique
   password                    String
   isActive                    Boolean @default(false)
-  contact                     String?
+  phone                       String?
   avatar                      String?
   address                     String?
   availableRegions            LogisticsProviderRegion[]
