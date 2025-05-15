@@ -217,9 +217,15 @@ export const UpdateCartItem = async (req: Request, res: Response) => {
       },
     });
   } else {
-    await prisma.orderItem.delete({
+    await prisma.cartItem.delete({
       where: { id: cartItem.id },
     });
   }
-  getCartData(user, "Product quantity updated", res);
+  getCartData(
+    user,
+    type === "delete"
+      ? "Product removed from cart"
+      : "Product quantity updated",
+    res
+  );
 };
