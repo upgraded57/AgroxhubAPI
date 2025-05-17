@@ -221,6 +221,7 @@ export const CreateOrder = async (req: Request, res: Response) => {
       let totalLogisticsCost = 0;
       for (const item of group.orderItems) {
         const categoryId = item.product.categoryId;
+        // Calculate distance from seller to buyer and add to logistics cost here
         const unitCost = logisticsPricingMap[categoryId] || 0;
         totalLogisticsCost += unitCost * item.quantity;
       }
@@ -456,6 +457,8 @@ export const UpdateOrderItem = async (req: Request, res: Response) => {
         where: { id: itemId },
       });
     }
+
+    // Update logistics amount with product update
 
     // Check if order still has items in it
     const remainingItems = await prisma.orderItem.count({

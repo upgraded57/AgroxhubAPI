@@ -18,6 +18,9 @@ const getCartData = async (user: any, message: string, res: Response) => {
     select: {
       id: true,
       cartItems: {
+        orderBy: {
+          updatedAt: "desc",
+        },
         include: {
           product: {
             select: { images: true, name: true, unit: true, unitPrice: true },
@@ -35,6 +38,7 @@ const getCartData = async (user: any, message: string, res: Response) => {
       quantity: item.quantity,
       unitPrice: item.product.unitPrice,
       createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
       slug: item.slug,
       unit: item.product.unit,
       image: item.product.images[0],

@@ -114,6 +114,7 @@ model Cart {
   userId                  String @unique
   cartItems               CartItem[]
   createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt @default(now())
 }
 
 model CartItem {
@@ -124,6 +125,7 @@ model CartItem {
   slug                    String
   quantity                Int
   createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt @default(now())
 
   @@unique([slug, cartId]) // This enables upsert on these two fields
 }
@@ -163,6 +165,7 @@ model Region {
   orders             Order[]
   logisticRegion     LogisticsProvider[]
   logisticsProviders LogisticsProviderRegion[]
+  radius             String @default("")
 }
 
 model Review {

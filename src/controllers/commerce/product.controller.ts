@@ -18,7 +18,13 @@ const prisma = new PrismaClient({
 });
 
 export const GetAllCateories = async (req: Request, res: Response) => {
-  const categories = await prisma.category.findMany();
+  const categories = await prisma.category.findMany({
+    orderBy: {
+      products: {
+        _count: "desc",
+      },
+    },
+  });
 
   return res.status(200).json({
     status: true,
