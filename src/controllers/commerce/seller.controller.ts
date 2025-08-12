@@ -332,7 +332,7 @@ export const FollowSeller = async (req: Request, res: Response) => {
   }
 
   // Follow the seller
-  await prisma.following.create({
+  const follow = await prisma.following.create({
     data: {
       followerId: user!.id,
       followingId: sellerId,
@@ -349,7 +349,12 @@ export const FollowSeller = async (req: Request, res: Response) => {
       },
       subject: "You have a new follower",
       type: "follow",
-      content: `A new user - ${user?.name} - just followed you. You're gaining traction!`,
+      summary: `${user!.name} just followed you. You're gaining traction!`,
+      follower: {
+        connect: {
+          id: follow.id,
+        },
+      },
     },
   });
 

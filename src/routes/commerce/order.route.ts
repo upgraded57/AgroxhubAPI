@@ -5,8 +5,8 @@ import { validateAuth } from "../../middlewares/middlewares";
 import {
   AddOrderNotes,
   GetOrders,
+  GetSingleOrder,
 } from "../../controllers/commerce/order.controller";
-import { GetSingleOrder } from "../../controllers/commerce/checkout.controller";
 
 const router = Router();
 

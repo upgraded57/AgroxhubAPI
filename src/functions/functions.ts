@@ -4,6 +4,12 @@ import * as dotenv from "dotenv";
 import nodemailer from "nodemailer";
 import { ServerException } from "../exceptions/server-error";
 import { v2 as cloudinary } from "cloudinary";
+import axios from "axios";
+import {
+  CALIBRATED_DISTANCE_DIFFERENCE_IN_KM,
+  DEFAULT_LOCAL_RADIUS_KM,
+} from "../constants/constants";
+import { paystackInstance } from "./external";
 
 dotenv.config({
   path: "./.env",
@@ -12,6 +18,8 @@ dotenv.config({
 const prisma = new PrismaClient({
   log: ["warn", "error"],
 });
+
+const distanceUrl = process.env.DISTANCE_API as string;
 
 export const findUser = async (
   type: "email" | "token" | "id",
@@ -129,7 +137,7 @@ export const sendOtp = (
   recipient: string
 ) => {
   const transporter = nodemailer.createTransport({
-    host: "wghp7.wghservers.com",
+    host: "mail.agroxhub.com",
     port: 465,
     secure: true,
     requireTLS: true,
@@ -140,7 +148,7 @@ export const sendOtp = (
   });
 
   const mailOptions = {
-    from: '"Agroxhub" <developer@agroxhub.com>',
+    from: '"Agroxhub" <dev@agroxhub.com>',
     to: recipient,
     subject:
       type === "create"
@@ -342,7 +350,7 @@ export const sendActivationLink = (
   recipient: string
 ) => {
   const transporter = nodemailer.createTransport({
-    host: "wghp7.wghservers.com",
+    host: "mail.agroxhub.com",
     port: 465,
     secure: true,
     requireTLS: true,
@@ -353,7 +361,7 @@ export const sendActivationLink = (
   });
 
   const mailOptions = {
-    from: '"Agroxhub" <developer@agroxhub.com>',
+    from: '"Agroxhub" <dev@agroxhub.com>',
     to: recipient,
     subject:
       type === "create"
@@ -609,4 +617,69 @@ export const generateOrderNumber = (user: User) => {
   const seconds = String(now.getSeconds()).padStart(2, "0");
 
   return `${initials}-${year}${month}${day}_${hours}${minutes}${seconds}`;
+};
+
+export const getLogisticDistance = async (payload: {
+  startLong: string;
+  startLat: string;
+  endLong: string;
+  endLat: string;
+}) => {
+  if (
+    !payload.startLat ||
+    !payload.startLong ||
+    !payload.endLat ||
+    !payload.endLong
+  ) {
+    throw new BadRequestException(
+      "User and product regions are required for distance calculation"
+    );
+  }
+  if (
+    payload.startLat === payload.endLat &&
+    payload.startLong === payload.endLong
+  ) {
+    return DEFAULT_LOCAL_RADIUS_KM * CALIBRATED_DISTANCE_DIFFERENCE_IN_KM;
+  }
+  try {
+    const res = await axios.get(
+      `${distanceUrl}/${payload.startLong},${payload.startLat};${payload.endLong},${payload.endLat}?overview=false`
+    );
+
+    const distanceInKm: number = res.data.routes[0].distance / 1000;
+
+    return distanceInKm * CALIBRATED_DISTANCE_DIFFERENCE_IN_KM;
+  } catch (error) {
+    throw new ServerException("Logistics distance calculation error", error);
+  }
+};
+
+export const generateRedeemCode = (length = 6): string => {
+  const characters =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * characters.length);
+    result += characters[randomIndex];
+  }
+  return result;
+};
+
+export const verifyPaystackPayment = async (referenceCode: string) => {
+  try {
+    const paystackRes = await paystackInstance.get(
+      `transaction/verify/${referenceCode}`
+    );
+
+    if (
+      paystackRes.data.status === true &&
+      paystackRes.data.data.status === "success"
+    ) {
+      return true;
+    }
+  } catch (err) {
+    throw new ServerException("Unable to verify payment, Please retry");
+  }
+
+  return false;
 };

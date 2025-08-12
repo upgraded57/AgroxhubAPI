@@ -1,28 +1,15 @@
-import { PrismaClient } from "@prisma/client";
+import { Order, PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
-import { BadRequestException } from "../../exceptions/bad-request";
 import { NotFoundException } from "../../exceptions/not-found";
 import {
-  generateOrderNumber,
   validateRequiredFields,
+  verifyPaystackPayment,
 } from "../../functions/functions";
 import { ServerException } from "../../exceptions/server-error";
-import { UnauthorizedException } from "../../exceptions/unauthorized";
-import axios from "axios";
-import { ForbiddenException } from "../../exceptions/forbidden";
+import { paystackInstance } from "../../functions/external";
 
 const prisma = new PrismaClient({
   log: ["warn", "error"],
-});
-
-const paystackInstance = axios.create({
-  baseURL: "https://api.paystack.co",
-});
-
-paystackInstance.interceptors.request.use((config) => {
-  config.headers.Authorization = `Bearer ${process.env.PAYSTACK_TEST_SECRET_KEY}`;
-  config.headers["Content-Type"] = "application/json";
-  return config;
 });
 
 export const InitiatePayment = async (req: Request, res: Response) => {
@@ -96,6 +83,35 @@ export const VerifyPayment = async (req: Request, res: Response) => {
       userId: user?.id,
       referenceCode: referenceCode,
     },
+    include: {
+      orderGroups: {
+        include: {
+          orderItems: {
+            include: {
+              product: true,
+            },
+          },
+          seller: {
+            select: {
+              name: true,
+              address: true,
+              id: true,
+            },
+          },
+          logisticsProvider: {
+            select: {
+              name: true,
+              id: true,
+            },
+          },
+        },
+      },
+      user: {
+        select: {
+          name: true,
+        },
+      },
+    },
   });
 
   if (!order) {
@@ -111,48 +127,107 @@ export const VerifyPayment = async (req: Request, res: Response) => {
   }
 
   // Send codes to paystack for verification
-  try {
-    const paystackRes = await paystackInstance.get(
-      `transaction/verify/${referenceCode}`
-    );
+  const paymentVerified = await verifyPaystackPayment(referenceCode);
 
-    if (
-      paystackRes.data.status === true &&
-      paystackRes.data.data.status === "success"
-    ) {
-      const newOrder = await prisma.order.update({
+  if (paymentVerified) {
+    // Send notice to logistic providers and sellers of order.
+    const notificationPromises = order.orderGroups.flatMap((group) => {
+      const logisticsNotification = prisma.notification.create({
+        data: {
+          isGeneral: false,
+          target: "logistics",
+          logisticProvider: {
+            connect: {
+              id: group.logisticsProvider!.id,
+            },
+          },
+          type: "orderPlacement",
+          subject: `New Order: ${group.orderItems.length} Items Awaiting Pickup`,
+          summary: `A new order has been placed containing ${group.orderItems.length} products from ${group.seller.name}. Prepare for pickup`,
+          orderGroup: {
+            connect: {
+              id: group.id,
+            },
+          },
+          order: {
+            connect: {
+              id: group.orderId,
+            },
+          },
+        },
+      });
+
+      const sellerNotifications = group.orderItems.map((item) =>
+        prisma.notification.create({
+          data: {
+            isGeneral: false,
+            user: {
+              connect: {
+                id: group.seller.id,
+              },
+            },
+            product: {
+              connect: {
+                id: item.product.id,
+              },
+            },
+            productQuantity: item.quantity,
+            type: "orderPlacement",
+            subject: `New Order: ${item.quantity} ${item.product.name} ordered`,
+            summary: `You have a new order: ${item.product.name}. Prepare for pickup.`,
+            logisticProvider: {
+              connect: {
+                id: group.logisticsProviderId!,
+              },
+            },
+            order: {
+              connect: {
+                id: order.id,
+              },
+            },
+            orderGroup: {
+              connect: {
+                id: group.id,
+              },
+            },
+          },
+        })
+      );
+
+      return [logisticsNotification, ...sellerNotifications];
+    });
+    await prisma.$transaction([
+      prisma.order.update({
         where: {
           id: order.id,
         },
         data: {
           paymentStatus: "paid",
         },
-      });
-
-      // Clear user's cart
-      await prisma.cart.deleteMany({
+      }),
+      // Delete user's cart
+      prisma.cart.deleteMany({
         where: {
           userId: order.userId,
         },
-      });
+      }),
+      ...notificationPromises,
+    ]);
 
-      return res.status(200).json({
-        status: true,
-        message: "Payment verified successfully",
-        order: newOrder,
-      });
-    } else {
-      await prisma.order.update({
-        where: {
-          id: order.id,
-        },
-        data: {
-          paymentStatus: "failed",
-        },
-      });
-      throw new ServerException("Payment was not completed. Please retry");
-    }
-  } catch (error) {
-    throw new ServerException("Cannot verify payment. Please retry");
+    return res.status(200).json({
+      status: true,
+      message: "Payment verified successfully",
+      order,
+    });
+  } else {
+    await prisma.order.update({
+      where: {
+        id: order.id,
+      },
+      data: {
+        paymentStatus: "failed",
+      },
+    });
+    throw new ServerException("Payment was not completed. Please retry");
   }
 };

@@ -1,4 +1,10 @@
-import { Prisma, PrismaClient, Product, userType } from "@prisma/client";
+import {
+  NotificationType,
+  Prisma,
+  PrismaClient,
+  Product,
+  userType,
+} from "@prisma/client";
 import { Request, Response } from "express";
 import { BadRequestException } from "../../exceptions/bad-request";
 import { NotFoundException } from "../../exceptions/not-found";
@@ -278,7 +284,7 @@ export const GetSingleProduct = async (req: Request, res: Response) => {
   }
 
   // Send notification to seller when product reaches certain (e.g 10) clicks
-  if (product.clicks === 10) {
+  if (product.clicks % 10 === 0) {
     await prisma.notification.create({
       data: {
         user: {
@@ -286,9 +292,15 @@ export const GetSingleProduct = async (req: Request, res: Response) => {
             id: product.sellerId,
           },
         },
-        type: "productClicks",
-        subject: "Your product is becoming popular!",
-        content: `Your product - ${product.name} - has reached 10 clicks. Expect many orders soon!`,
+        type: NotificationType.milestone,
+        subject: "New Product Milestone!",
+        summary: `Your product - ${product.name} - has reached ${product.clicks} clicks. Expect orders soon!`,
+        milestone: "10 Clicks",
+        product: {
+          connect: {
+            id: product.id,
+          },
+        },
       },
     });
   }
@@ -409,63 +421,63 @@ export const EditProduct = async (req: Request, res: Response) => {
   }
 };
 
-export const createTempProducts = async (req: Request, res: Response) => {
-  const users = await prisma.user.findMany();
-  const sellers = users.filter((item) => item.type !== "buyer");
-  const categories = await prisma.category.findMany();
-  const newPs = AllProducts.map(async (item) => {
-    try {
-      const ranNum1 = Math.floor(Math.random() * AllImages.length);
-      const ranNum2 = Math.floor(Math.random() * AllImages.length);
-      const ranNum3 = Math.floor(Math.random() * AllImages.length);
-      const ranNum4 = Math.floor(Math.random() * AllImages.length);
-      const randomSeller = sellers[Math.floor(Math.random() * sellers.length)];
-      const randomCategory =
-        categories[Math.floor(Math.random() * sellers.length)];
-      await prisma.product.create({
-        data: {
-          name: item.name + "_" + Math.floor(Math.random() * 1000).toString(),
-          seller: {
-            connect: {
-              id: randomSeller.id,
-            },
-          },
-          slug:
-            item.name.toLowerCase().split(" ").join("_") +
-            "_" +
-            Math.floor(Math.random() * 200000).toString(),
-          unitPrice: Math.random() * 5000,
-          region: {
-            connect: {
-              id:
-                randomSeller.regionId ?? "0231e8e3-7296-42e5-ae9b-1baeec059e70",
-            },
-          },
-          category: {
-            connect: {
-              id: randomCategory.id,
-            },
-          },
-          unitWeight: item.unitWeight,
-          unit: item.unit,
-          quantity: item.quantity,
-          description: item.description,
-          location: item.location,
-          images: [
-            AllImages[ranNum1].download_url,
-            AllImages[ranNum2].download_url,
-            AllImages[ranNum3].download_url,
-            AllImages[ranNum4].download_url,
-          ],
-          ratings: parseInt((Math.random() * 5).toFixed(1)),
-        },
-      });
-    } catch (error) {
-      console.log("Error", error);
-    }
-  });
+// export const createTempProducts = async (req: Request, res: Response) => {
+//   const users = await prisma.user.findMany();
+//   const sellers = users.filter((item) => item.type !== "buyer");
+//   const categories = await prisma.category.findMany();
+//   const newPs = AllProducts.map(async (item) => {
+//     try {
+//       const ranNum1 = Math.floor(Math.random() * AllImages.length);
+//       const ranNum2 = Math.floor(Math.random() * AllImages.length);
+//       const ranNum3 = Math.floor(Math.random() * AllImages.length);
+//       const ranNum4 = Math.floor(Math.random() * AllImages.length);
+//       const randomSeller = sellers[Math.floor(Math.random() * sellers.length)];
+//       const randomCategory =
+//         categories[Math.floor(Math.random() * sellers.length)];
+//       await prisma.product.create({
+//         data: {
+//           name: item.name + "_" + Math.floor(Math.random() * 1000).toString(),
+//           seller: {
+//             connect: {
+//               id: randomSeller.id,
+//             },
+//           },
+//           slug:
+//             item.name.toLowerCase().split(" ").join("_") +
+//             "_" +
+//             Math.floor(Math.random() * 200000).toString(),
+//           unitPrice: Math.random() * 5000,
+//           region: {
+//             connect: {
+//               id:
+//                 randomSeller.regionId ?? "0231e8e3-7296-42e5-ae9b-1baeec059e70",
+//             },
+//           },
+//           category: {
+//             connect: {
+//               id: randomCategory.id,
+//             },
+//           },
+//           unitWeight: item.unitWeight,
+//           unit: item.unit,
+//           quantity: item.quantity,
+//           description: item.description,
+//           location: item.location,
+//           images: [
+//             AllImages[ranNum1].download_url,
+//             AllImages[ranNum2].download_url,
+//             AllImages[ranNum3].download_url,
+//             AllImages[ranNum4].download_url,
+//           ],
+//           ratings: parseInt((Math.random() * 5).toFixed(1)),
+//         },
+//       });
+//     } catch (error) {
+//       console.log("Error", error);
+//     }
+//   });
 
-  await Promise.all(newPs);
+//   await Promise.all(newPs);
 
-  return res.status(200).json({ products: newPs });
-};
+//   return res.status(200).json({ products: newPs });
+// };

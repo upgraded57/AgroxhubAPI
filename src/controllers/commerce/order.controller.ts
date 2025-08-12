@@ -114,3 +114,102 @@ export const AddOrderNotes = async (req: Request, res: Response) => {
     message: "Notes added to order successfully",
   });
 };
+
+export const GetSingleOrder = async (req: Request, res: Response) => {
+  const user = req.user!;
+  const { orderNumber } = req.params;
+
+  validateRequiredFields([
+    {
+      name: "Order Number",
+      value: orderNumber,
+    },
+  ]);
+
+  const order = await prisma.order.findFirst({
+    where: {
+      orderNumber,
+      userId: user?.id,
+    },
+    include: {
+      deliveryRegion: true,
+      orderGroups: {
+        orderBy: {
+          updatedAt: "desc",
+        },
+        include: {
+          seller: {
+            select: {
+              name: true,
+            },
+          },
+          logisticsProvider: {
+            select: {
+              name: true,
+              id: true,
+              avatar: true,
+            },
+          },
+          orderItems: {
+            select: {
+              id: true,
+              product: {
+                select: {
+                  slug: true,
+                  images: true,
+                  name: true,
+                  unit: true,
+                  ratings: true,
+                },
+              },
+              quantity: true,
+              unitPrice: true,
+              totalPrice: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+            orderBy: {
+              updatedAt: "desc",
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!order) {
+    throw new NotFoundException("Order not found!");
+  }
+
+  return res.status(200).json({
+    status: true,
+    message: "Order found successfully",
+    order: {
+      ...order,
+      orderGroups: order?.orderGroups.map((item) => ({
+        id: item.id,
+        sellerId: item.sellerId,
+        status: item.status,
+        sellerName: item.seller.name,
+        logisticsProviderId: item.logisticsProviderId,
+        logisticProvider: item.logisticsProvider,
+        logisticsCost: item.logisticsCost,
+        deliveryDate: item.deliveryDate,
+        orderCompletionCode: item.orderCompletionCode,
+        orderItems: item.orderItems.map((entity) => ({
+          id: entity.id,
+          slug: entity.product.slug,
+          image: entity.product.images[0],
+          name: entity.product.name,
+          ratings: entity.product.ratings,
+          quantity: entity.quantity,
+          unitPrice: entity.unitPrice,
+          unit: entity.product.unit,
+          totalPrice: entity.totalPrice,
+          createdAt: entity.createdAt,
+          updatedAt: entity.updatedAt,
+        })),
+      })),
+    },
+  });
+};

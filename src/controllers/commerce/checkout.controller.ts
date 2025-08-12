@@ -1,14 +1,17 @@
-import { PrismaClient } from "@prisma/client";
+import { OrderItem, PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
 import { BadRequestException } from "../../exceptions/bad-request";
 import { NotFoundException } from "../../exceptions/not-found";
 import {
   generateOrderNumber,
+  generateRedeemCode,
+  getLogisticDistance,
   validateRequiredFields,
 } from "../../functions/functions";
 import { ServerException } from "../../exceptions/server-error";
 import { UnauthorizedException } from "../../exceptions/unauthorized";
 import { ForbiddenException } from "../../exceptions/forbidden";
+import { DISTANCE_COST_PER_KM } from "../../constants/constants";
 
 const prisma = new PrismaClient({
   log: ["warn", "error"],
@@ -102,7 +105,6 @@ export const CreateOrder = async (req: Request, res: Response) => {
     },
   });
 
-  const orderCompletionCode = Math.random() * 100000;
   // Step 2: Update the Order to add Order Groups & Order Items
   const createdOrder = await prisma.order.update({
     where: { id: order.id },
@@ -110,7 +112,7 @@ export const CreateOrder = async (req: Request, res: Response) => {
       orderGroups: {
         create: Object.entries(groupedProducts).map(([sellerId, items]) => ({
           seller: { connect: { id: sellerId } },
-          orderCompletionCode,
+          orderCompletionCode: generateRedeemCode(),
           // Logistic provider will be appended here
 
           orderItems: {
@@ -130,7 +132,11 @@ export const CreateOrder = async (req: Request, res: Response) => {
         include: {
           orderItems: {
             include: {
-              product: true,
+              product: {
+                include: {
+                  region: true,
+                },
+              },
             },
           },
           seller: { select: { regionId: true } },
@@ -219,11 +225,27 @@ export const CreateOrder = async (req: Request, res: Response) => {
         }, {} as Record<string, number>);
 
       let totalLogisticsCost = 0;
+
+      // Calculate distance from seller to buyer and add to logistics cost here
+      const pickupRegion = group.orderItems[0].product.region;
+      const deliveryRegion = regionExists; // Already fetched above
+
+      const distance = await getLogisticDistance({
+        startLat: pickupRegion?.lat ? String(pickupRegion.lat) : "",
+        startLong: pickupRegion?.long ? String(pickupRegion.long) : "",
+        endLat: deliveryRegion?.lat ? String(deliveryRegion.lat) : "",
+        endLong: deliveryRegion?.long ? String(deliveryRegion.long) : "",
+      });
+
+      const distanceCost = distance * DISTANCE_COST_PER_KM;
+
       for (const item of group.orderItems) {
         const categoryId = item.product.categoryId;
-        // Calculate distance from seller to buyer and add to logistics cost here
+
         const unitCost = logisticsPricingMap[categoryId] || 0;
-        totalLogisticsCost += unitCost * item.quantity;
+        const unitCostPrice = unitCost * item.quantity;
+
+        totalLogisticsCost += unitCostPrice + distanceCost;
       }
 
       // Update OrderGroup with provider and cost
@@ -304,13 +326,22 @@ export const GetSingleOrder = async (req: Request, res: Response) => {
     include: {
       deliveryRegion: true,
       orderGroups: {
+        orderBy: {
+          createdAt: "desc",
+        },
         include: {
           seller: {
             select: {
               name: true,
             },
           },
-          logisticsProvider: true,
+          logisticsProvider: {
+            select: {
+              name: true,
+              id: true,
+              avatar: true,
+            },
+          },
           orderItems: {
             select: {
               id: true,
@@ -392,83 +423,218 @@ export const UpdateOrderItem = async (req: Request, res: Response) => {
     throw new BadRequestException("Unknown update type provided");
   }
 
-  // Find product to update first
-  const productToUpdate = await prisma.orderItem.findUnique({
-    where: { id: itemId },
-    include: {
-      product: {
-        select: {
-          unitPrice: true, //Selecting product unit price from product to always get current product price
-        },
-      },
-      order: {
-        select: {
-          id: true,
-          userId: true,
-        },
-      },
-    }, // Include product and order details
-  });
-
-  if (!productToUpdate) {
-    throw new NotFoundException("Product not in order!");
-  }
-
-  const { order } = productToUpdate;
-
-  if (user?.id !== order.userId) {
-    throw new UnauthorizedException("This action is unauthorized");
-  }
-
-  // Validate quantity updates
-  if (type === "decrement" && productToUpdate.quantity <= 1) {
-    throw new BadRequestException("Cannot decrease product quantity below 1");
-  }
-
-  if (type === "increment" && productToUpdate.quantity >= 10) {
-    throw new BadRequestException("Cannot increase product quantity beyond 10");
-  }
-
-  let newProductToUpdatePrice: number = 0;
-  if (type === "increment") {
-    newProductToUpdatePrice =
-      (productToUpdate.quantity + 1) * productToUpdate.product.unitPrice;
-  }
-  if (type === "decrement") {
-    newProductToUpdatePrice =
-      (productToUpdate.quantity - 1) * productToUpdate.product.unitPrice;
-  }
-
-  try {
-    // Update quantity
-    if (type !== "delete") {
-      await prisma.orderItem.update({
-        where: { id: itemId },
-        data: {
-          quantity: {
-            ...(type === "increment" ? { increment: 1 } : {}),
-            ...(type === "decrement" ? { decrement: 1 } : {}),
+  await prisma.$transaction(async (tx) => {
+    // Find product to update first
+    const productToUpdate = await tx.orderItem.findUnique({
+      where: { id: itemId },
+      include: {
+        product: {
+          select: {
+            unitPrice: true, //Selecting product unit price from product to always get current product price
+            categoryId: true,
           },
-          totalPrice: newProductToUpdatePrice,
         },
-      });
-    } else {
-      await prisma.orderItem.delete({
-        where: { id: itemId },
-      });
-    }
-
-    // Update logistics amount with product update
-
-    // Check if order still has items in it
-    const remainingItems = await prisma.orderItem.count({
-      where: { orderId: order.id },
+        orderGroup: {
+          select: {
+            logisticsProviderId: true,
+            logisticsCost: true,
+            id: true,
+          },
+        },
+        order: {
+          select: {
+            id: true,
+            userId: true,
+            logisticsAmount: true,
+          },
+        },
+      }, // Include product and order details
     });
 
-    if (remainingItems === 0) {
-      await prisma.order.delete({
+    if (!productToUpdate) {
+      throw new NotFoundException("Product not in order!");
+    }
+
+    const { order } = productToUpdate;
+
+    if (user?.id !== order.userId) {
+      throw new UnauthorizedException("This action is unauthorized");
+    }
+
+    // Validate quantity updates
+    if (type === "decrement" && productToUpdate.quantity <= 1) {
+      throw new BadRequestException("Cannot decrease product quantity below 1");
+    }
+
+    if (type === "increment" && productToUpdate.quantity >= 10) {
+      throw new BadRequestException(
+        "Cannot increase product quantity beyond 10"
+      );
+    }
+
+    let newProductToUpdatePrice: number = 0;
+    if (type === "increment") {
+      newProductToUpdatePrice =
+        (productToUpdate.quantity + 1) * productToUpdate.product.unitPrice;
+    }
+    if (type === "decrement") {
+      newProductToUpdatePrice =
+        (productToUpdate.quantity - 1) * productToUpdate.product.unitPrice;
+    }
+
+    let updatedProduct: OrderItem;
+    try {
+      // Update quantity
+      if (type !== "delete") {
+        updatedProduct = await tx.orderItem.update({
+          where: { id: itemId },
+          data: {
+            quantity: {
+              ...(type === "increment" ? { increment: 1 } : {}),
+              ...(type === "decrement" ? { decrement: 1 } : {}),
+            },
+            totalPrice: newProductToUpdatePrice,
+          },
+        });
+      } else {
+        updatedProduct = await tx.orderItem.delete({
+          where: { id: itemId },
+        });
+      }
+
+      // Check if order still has items in it
+      const orderGroupId = productToUpdate.orderGroup.id;
+      const productToUpdateOrderGroup = await tx.orderGroup.findUnique({
+        where: { id: orderGroupId },
+        select: {
+          _count: {
+            select: {
+              orderItems: true,
+            },
+          },
+          logisticsCost: true,
+        },
+      });
+
+      const remainingItems = productToUpdateOrderGroup?._count?.orderItems || 0;
+      const emptyOrderGroupLogisiticsCost =
+        productToUpdateOrderGroup?.logisticsCost || 0;
+
+      // If no more product in order
+      if (!remainingItems || remainingItems === 0) {
+        await tx.orderGroup.delete({
+          where: {
+            id: orderGroupId,
+          },
+        });
+      }
+
+      // Recalculate total order logistics price
+      // Step 1: Get the unit logistic cost for the product to update category
+      const logisticCostInfo = await tx.logisticsProviderCategory.findFirst({
+        where: {
+          logisticsProviderId: productToUpdate.orderGroup.logisticsProviderId!,
+          categoryId: productToUpdate.product.categoryId,
+        },
+      });
+
+      // Step 2: Recalculate total logistic cost for product to update
+      const newOrderGroupItemLogisticsCost =
+        logisticCostInfo?.unitCost! * updatedProduct.quantity;
+
+      // Step 3: Subtract product to update old logistic cost from order group logistic costs
+      const oldOrderGroupLogisticsCostMinusProductToUpdate =
+        productToUpdate.orderGroup.logisticsCost! -
+        productToUpdate.quantity * logisticCostInfo?.unitCost!;
+
+      // Step 4: Add new logistic cost of product to update to result of step 3 above to get new logistic cost of order group
+      const newOrderGroupLogisticsCost =
+        oldOrderGroupLogisticsCostMinusProductToUpdate +
+        newOrderGroupItemLogisticsCost;
+
+      // Step 5: Update order group logistic cost
+      if (remainingItems !== 0) {
+        await tx.orderGroup.update({
+          where: {
+            id: updatedProduct.orderGroupId,
+          },
+          data: {
+            logisticsCost: newOrderGroupLogisticsCost,
+          },
+        });
+      } else {
+        // Remove deleted order group logistics cost from order
+        await tx.order.update({
+          where: {
+            id: order.id,
+          },
+          data: {
+            logisticsAmount: {
+              decrement: emptyOrderGroupLogisiticsCost,
+            },
+          },
+        });
+      }
+
+      // -----
+      // Step 1: Select all products in order
+      const allProducts = await tx.order.findUnique({
         where: {
           id: order.id,
+        },
+        select: {
+          logisticsAmount: true,
+          orderGroups: {
+            select: {
+              logisticsCost: true,
+              orderItems: {
+                select: {
+                  productId: true,
+                  quantity: true,
+                  unitPrice: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      // Step 2: Recalculate total price of products in order
+      let newProductsAmount = 0;
+      allProducts?.orderGroups?.map((group) => {
+        group.orderItems.map((item) => {
+          newProductsAmount += item.quantity * item.unitPrice;
+        });
+      });
+
+      // Step 3: Calculate total logistics cost of order groups in order
+      const newTotalLogisticsAmount = allProducts?.orderGroups.reduce(
+        (acc, item) => {
+          if (item.logisticsCost) {
+            acc += item.logisticsCost;
+            return acc;
+          }
+
+          return acc;
+        },
+        0
+      );
+
+      const newVat = 0.1 * (newProductsAmount + newTotalLogisticsAmount!);
+
+      const newTotalAmount =
+        newProductsAmount + newVat + newTotalLogisticsAmount!;
+
+      // Step 3: Update order with new amount
+      await tx.order.update({
+        where: {
+          id: order.id,
+        },
+        data: {
+          productsAmount: newProductsAmount,
+          vat: newVat,
+          totalAmount: newTotalAmount,
+          logisticsAmount: newTotalLogisticsAmount,
         },
       });
 
@@ -479,65 +645,10 @@ export const UpdateOrderItem = async (req: Request, res: Response) => {
             ? "Product deleted successfully"
             : `Quantity ${type}ed successfully`,
       });
+    } catch (err) {
+      throw new ServerException("Unable to update product", err);
     }
-
-    // Recalculate total order price
-    // Step 1: Select all products in order
-    const allProducts = await prisma.order.findUnique({
-      where: {
-        id: order.id,
-      },
-      select: {
-        logisticsAmount: true,
-        orderGroups: {
-          select: {
-            orderItems: {
-              select: {
-                productId: true,
-                quantity: true,
-                unitPrice: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    // Step 2: Recalculate total price
-    let newProductsAmount = 0;
-    allProducts?.orderGroups?.map((group) => {
-      group.orderItems.map((item) => {
-        newProductsAmount += item.quantity * item.unitPrice;
-      });
-    });
-
-    const newVat = 0.1 * newProductsAmount;
-
-    const newTotalAmount =
-      newProductsAmount + newVat + allProducts?.logisticsAmount!;
-
-    // Step 3: Update order with new amount
-    await prisma.order.update({
-      where: {
-        id: order.id,
-      },
-      data: {
-        productsAmount: newProductsAmount,
-        vat: newVat,
-        totalAmount: newTotalAmount,
-      },
-    });
-
-    return res.status(200).json({
-      status: true,
-      message:
-        type === "delete"
-          ? "Product deleted successfully"
-          : `Quantity ${type}ed successfully`,
-    });
-  } catch (err) {
-    throw new ServerException("Unable to update product", err);
-  }
+  });
 };
 
 export const GetOrderLogisticsProviders = async (
@@ -565,7 +676,11 @@ export const GetOrderLogisticsProviders = async (
       },
       orderItems: {
         include: {
-          product: true,
+          product: {
+            include: {
+              region: true,
+            },
+          },
         },
       },
       order: {
@@ -651,22 +766,41 @@ export const GetOrderLogisticsProviders = async (
   }
 
   // Now calculate total logistics cost for this group
-  const totalCost = fullyEligibleProviders.map((providerId) => {
-    const logisticsPricingMap = providerCategoryMatches
-      .filter((p) => p.logisticsProviderId === providerId)
-      .reduce((acc, curr) => {
-        acc[curr.categoryId] = curr.unitCost;
-        return acc;
-      }, {} as Record<string, number>);
+  const totalCost = await Promise.all(
+    fullyEligibleProviders.map(async (providerId) => {
+      const logisticsPricingMap = providerCategoryMatches
+        .filter((p) => p.logisticsProviderId === providerId)
+        .reduce((acc, curr) => {
+          acc[curr.categoryId] = curr.unitCost;
+          return acc;
+        }, {} as Record<string, number>);
 
-    let totalLogisticsCost = 0;
-    for (const item of group.orderItems) {
-      const categoryId = item.product.categoryId;
-      const unitCost = logisticsPricingMap[categoryId] || 0;
-      totalLogisticsCost += unitCost * item.quantity;
-    }
-    return { providerId, totalLogisticsCost };
-  });
+      let totalLogisticsCost = 0;
+
+      const pickupRegion = group.orderItems[0].product.region;
+      const deliveryRegion = req.user?.region;
+
+      const distance = await getLogisticDistance({
+        startLat: pickupRegion?.lat ? String(pickupRegion.lat) : "",
+        startLong: pickupRegion?.long ? String(pickupRegion.long) : "",
+        endLat: deliveryRegion?.lat ? String(deliveryRegion.lat) : "",
+        endLong: deliveryRegion?.long ? String(deliveryRegion.long) : "",
+      });
+
+      const distanceCost = distance * DISTANCE_COST_PER_KM;
+
+      for (const item of group.orderItems) {
+        const categoryId = item.product.categoryId;
+
+        const unitCost = logisticsPricingMap[categoryId] || 0;
+        const unitCostPrice = unitCost * item.quantity;
+
+        totalLogisticsCost += unitCostPrice + distanceCost;
+      }
+
+      return { providerId, totalLogisticsCost };
+    })
+  );
 
   const providers = await prisma.logisticsProvider.findMany({
     where: {
@@ -688,8 +822,9 @@ export const GetOrderLogisticsProviders = async (
       );
 
       return {
-        ...provider,
-        logisticCost: providerCost?.totalLogisticsCost,
+        name: provider.name,
+        avatar: provider.avatar,
+        logisticCost: Math.round(providerCost?.totalLogisticsCost || 0),
       };
     }),
   });

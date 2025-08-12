@@ -15,7 +15,7 @@ datasource db {
 }
 
 model User {
-  id                      String @id @default(uuid())
+  id                      String @id @default(cuid())
   name                    String
   email                   String @unique
   avatar                  String? @default("")
@@ -47,12 +47,13 @@ model User {
 }
 
 model Following {
-  id                      String @id @default(uuid())
+  id                      String @id @default(cuid())
   followerId              String
   followingId             String
   createdAt               DateTime @default(now())
   follower                User @relation(fields: [followerId], references: [id], name: "UserFollowers")
   following               User @relation(fields: [followingId], references: [id], name: "UserFollowing")
+  notifications           Notification[]
 
   @@unique([followerId, followingId]) // Prevent duplicate follows
 }
@@ -65,9 +66,8 @@ enum userType {
   buyer
 }
 
-
 model Product {
-  id                      String @id @unique @default(uuid())
+  id                      String @id @unique @default(cuid())
   category                Category @relation(fields: [categoryId], references: [id])
   categoryId              String
   name                    String @unique
@@ -100,6 +100,7 @@ model Product {
   views                   Int @default(0)
   clicks                  Int @default(0)
   orders                  OrderItem[]
+  notifications           Notification[]
 }
 
 enum promotionLevel {
@@ -109,7 +110,7 @@ enum promotionLevel {
 }
 
 model Cart {
-  id                      String @id @default(uuid())
+  id                      String @id @default(cuid())
   user                    User @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId                  String @unique
   cartItems               CartItem[]
@@ -118,7 +119,7 @@ model Cart {
 }
 
 model CartItem {
-  id                      String @id @default(uuid())
+  id                      String @id @default(cuid())
   cart                    Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
   cartId                  String 
   product                 Product @relation(fields: [slug], references: [slug], onDelete: Cascade)
@@ -131,30 +132,53 @@ model CartItem {
 }
 
 model Notification {
-  id                      String   @id @default(uuid())
+  id                      String   @id @default(cuid())
   type                    NotificationType
+  target                  NotificationTarget @default(user)
   isGeneral               Boolean  @default(false)
   unread                  Boolean  @default(true)
   subject                 String
-  content                 String
-  attachment              String?
+  summary                 String  @default("")
   user                    User?    @relation(fields: [userId], references: [id])
   userId                  String? 
+  logisticProvider        LogisticsProvider?  @relation(fields: [logisticProviderId], references: [id])
+  logisticProviderId      String?
   createdAt               DateTime @default(now())
+  orderGroup              OrderGroup? @relation(fields: [orderGroupId], references: [id])
+  orderGroupId            String?
+  order                   Order? @relation(fields: [orderId], references: [id])
+  orderId                 String?
+  product                 Product? @relation(fields: [productId], references: [id])
+  productId               String?
+  productQuantity         Int?
+  review                  Review? @relation(fields: [reviewId], references: [id])
+  reviewId                String?
+  attachment              String?
+  milestone               String?
+  follower                Following? @relation(fields: [followerId], references: [id])
+  followerId              String?
+}
+
+enum NotificationTarget {
+  user
+  logistics
 }
 
 enum NotificationType {
   follow
   productReview 
   productSave 
-  productOrder 
-  productDelivery 
-  productShipped
-  productClicks
+  orderPlacement 
+  orderPickup 
+  orderInTransit
+  orderDelivery
+  milestone
+  orderAssignment
+  outOfStock
 }
 
 model Region {
-  id                 String @id @unique @default(uuid())
+  id                 String @id @unique @default(cuid())
   state              String
   lcda               String
   name               String
@@ -169,7 +193,7 @@ model Region {
 }
 
 model Review {
-  id                    String @id @unique @default(uuid())
+  id                    String @id @unique @default(cuid())
   sellerId              String 
   product               Product? @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   productId             String? 
@@ -181,10 +205,11 @@ model Review {
   subject               String 
   description           String 
   createdAt             DateTime @default(now())
+  notifications         Notification[]
 }
 
 model SavedItem {
-  id                    String @id @unique @default(uuid())
+  id                    String @id @unique @default(cuid())
   product               Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   productId             String
   user                  User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
@@ -193,7 +218,7 @@ model SavedItem {
 }
 
 model Category {
-  id                    String @unique @default(uuid())
+  id                    String @unique @default(cuid())
   name                  String @unique
   slug                  String @default("")
   products              Product[]
@@ -201,13 +226,13 @@ model Category {
 }
 
 model Tag {
-  id                    String @id @unique @default(uuid())
+  id                    String @id @unique @default(cuid())
   product               Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   productId             String
 }
 
 model Otp{
-  id                    String @id @unique @default(uuid())
+  id                    String @id @unique @default(cuid())
   user                  User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId                String 
   otp                   Int
@@ -216,7 +241,7 @@ model Otp{
 }
 
 model Order {
-  id                      String @id @default(uuid())
+  id                      String @id @default(cuid())
   orderNumber             String @default("")
   user                    User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId                  String
@@ -237,10 +262,11 @@ model Order {
   accessCode              String? @unique
   sellerNote              String?
   logisticsNote           String?
+  notifications           Notification[]
 }
 
 model OrderGroup {
-  id                      String @id @default(uuid())
+  id                      String @id @default(cuid())
   orderItems              OrderItem[] 
   seller                  User @relation(fields: [sellerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   sellerId                String
@@ -251,14 +277,17 @@ model OrderGroup {
   orderId                 String
   pickupDate              DateTime?
   deliveryDate            DateTime?
-  logisticsCost           Int? // Calculated in kobo
-  orderCompletionCode     Int
+  logisticsCost           Int?
+  orderCompletionCode     String
   pickupImages            String[]
   pickupTime              DateTime?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt @default(now())
+  notifications           Notification[]
 }
 
 model OrderItem {
-  id                    String @id @default(uuid())
+  id                    String @id @default(cuid())
   order                 Order @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   orderId               String
   orderGroup            OrderGroup @relation(fields: [orderGroupId], references: [id], onDelete: Cascade, onUpdate: Cascade) // Links each item to an OrderGroup
@@ -288,7 +317,7 @@ enum PaymentStatus {
 }
 
 model LogisticsProvider {
-  id                          String @id @default(uuid())
+  id                          String @id @default(cuid())
   name                        String
   email                       String @unique
   password                    String
@@ -303,6 +332,7 @@ model LogisticsProvider {
   region                      Region? @relation(fields: [regionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   regionId                    String?
   isVisible                   Boolean @default(true)
+  notification                Notification[]
 }
 
 // Join table for many-to-many relationship

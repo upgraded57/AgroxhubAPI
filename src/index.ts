@@ -5,12 +5,17 @@ import * as dotenv from "dotenv";
 import { errorHandler } from "./middlewares/errors";
 import cors from "cors";
 dotenv.config();
-import { User } from "@prisma/client";
+import { User, Region, Cart } from "@prisma/client";
+
+type ExtendedUser = User & {
+  region: Region | null;
+  cart: Cart | null;
+};
 
 declare global {
   namespace Express {
     interface Request {
-      user?: User;
+      user?: ExtendedUser;
       userId?: string;
     }
   }
