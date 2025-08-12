@@ -2,7 +2,7 @@ import { Router } from "express";
 
 import { errorCatcher } from "../../middlewares/errors";
 import {
-  // CreateUsers,
+  CreateUsers,
   EditUser,
   GetAllUsers,
   GetUser,
@@ -13,14 +13,10 @@ const upload = multer({
   dest: "./uploads/avatars",
 });
 
-import apicache from "apicache";
-
-let cache = apicache.middleware;
-
 const router = Router();
 
 router.get("/", validateAuth, errorCatcher(GetUser));
-// router.post("/", cache("5 minutes"), errorCatcher(CreateUsers));
+router.post("/", errorCatcher(CreateUsers));
 router.get("/all", errorCatcher(GetAllUsers));
 router.patch(
   "/",

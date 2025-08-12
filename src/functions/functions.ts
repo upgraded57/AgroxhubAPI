@@ -75,7 +75,7 @@ export const validateFieldType = (
   // Define regex patterns for each type
   const patterns: { [key: string]: RegExp } = {
     name: /^[A-Za-z]+(\s[A-Za-z]+)+$/, // At least two words, letters only, space-separated
-    phone: /^(234\d{10}|(07|08|09)\d{9})$/, // Nigerian number format
+    phone: /^(\+?234\d{10}|(07|08|09)\d{9})$/, // Nigerian number format
     password: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/, // At least 8 chars, uppercase, lowercase, number
     email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, // Standard email validation
     otp: /^\d{6}$/,

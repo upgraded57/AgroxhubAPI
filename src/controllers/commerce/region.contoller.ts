@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
 import * as dotenv from "dotenv";
+import { AllRegions } from "../../helpers/regions";
 dotenv.config({ path: "./.env" });
 
 const prisma = new PrismaClient({
@@ -8,20 +9,6 @@ const prisma = new PrismaClient({
 });
 
 export const GetRegions = async (req: Request, res: Response) => {
-  // const newRegs = AllRegions.map(async (item) => {
-  //   try {
-  //     await prisma.region.create({
-  //       data: {
-  //         ...item,
-  //       },
-  //     });
-  //   } catch (error) {
-  //     console.log("Error", error);
-  //   }
-  // });
-
-  // await Promise.all(newRegs);
-
   const regions = await prisma.region.findMany({
     orderBy: {
       lcda: "asc",
@@ -35,10 +22,8 @@ export const GetRegions = async (req: Request, res: Response) => {
 };
 
 export const CreateRegions = async (req: Request, res: Response) => {
-  const { regions } = req.body;
-
   const createdRegions = await prisma.region.createMany({
-    data: regions,
+    data: AllRegions,
   });
 
   return res.status(200).json({ createdRegions });

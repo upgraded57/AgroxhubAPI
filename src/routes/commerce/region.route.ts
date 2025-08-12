@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { errorCatcher } from "../../middlewares/errors";
 import {
-  // CreateRegions,
+  CreateRegions,
   GetRegions,
 } from "../../controllers/commerce/region.contoller";
 

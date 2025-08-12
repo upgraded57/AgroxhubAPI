@@ -9,6 +9,8 @@ import { BadRequestException } from "../../exceptions/bad-request";
 import { NotFoundException } from "../../exceptions/not-found";
 import * as dotenv from "dotenv";
 import { ServerException } from "../../exceptions/server-error";
+import { AllUsers } from "../../helpers/users";
+import { hashSync } from "bcrypt";
 dotenv.config({ path: "./.env" });
 
 const prisma = new PrismaClient({
@@ -16,33 +18,6 @@ const prisma = new PrismaClient({
 });
 
 export const GetUser = async (req: Request, res: Response) => {
-  // const regions = await prisma.region.findMany();
-
-  // const newUsers = AllUsers.map(async (item) => {
-  //   const randomRegionId = Math.floor(Math.random() * regions.length);
-  //   const randomRegion = regions[randomRegionId];
-  //   try {
-  //     await prisma.user.create({
-  //       data: {
-  //         name: item.name,
-  //         email: item.name.toLowerCase().split(" ").join("_") + "@agroxhub.com",
-  //         isActive: true,
-  //         type: item.type as userType,
-  //         password: hashSync("Payboi10", 10),
-  //         region: {
-  //           connect: {
-  //             id: randomRegion.id,
-  //           },
-  //         },
-  //       },
-  //     });
-  //   } catch (error) {
-  //     console.log("Error", error);
-  //   }
-  // });
-
-  // await Promise.all(newUsers);
-
   return res.status(200).json({
     status: true,
     message: "User found successfully",
@@ -138,11 +113,36 @@ export const GetAllUsers = async (req: Request, res: Response) => {
 };
 
 export const CreateUsers = async (req: Request, res: Response) => {
-  const { users } = req.body;
+  const regions = await prisma.region.findMany();
 
-  const createdUsers = await prisma.user.createMany({
-    data: users,
+  const newUsers = AllUsers.map(async (item) => {
+    const randomRegionId = Math.floor(Math.random() * regions.length);
+    const randomRegion = regions[randomRegionId];
+    try {
+      await prisma.user.create({
+        data: {
+          name: item.name,
+          email: item.name.toLowerCase().split(" ").join("_") + "@agroxhub.com",
+          isActive: true,
+          type: item.type as userType,
+          password: hashSync("Payboi10", 10),
+          region: {
+            connect: {
+              id: randomRegion.id,
+            },
+          },
+          address: item.address,
+          avatar: item.avatar,
+          coverImg: item.coverImg,
+          phoneNumber: item.phoneNumber,
+        },
+      });
+    } catch (error) {
+      console.log("Error", error);
+    }
   });
 
-  return res.status(200).json({ createdUsers });
+  await Promise.all(newUsers);
+
+  return res.status(200).json({ newUsers });
 };

@@ -17,6 +17,7 @@ import {
 import apicache from "apicache";
 import { AllProducts } from "../../helpers/products";
 import { AllImages } from "../../helpers/images";
+import { AllCategories } from "../../helpers/tags";
 dotenv.config({ path: "./.env" });
 
 const prisma = new PrismaClient({
@@ -40,9 +41,11 @@ export const GetAllCateories = async (req: Request, res: Response) => {
 };
 
 export const CreateCategories = async (req: Request, res: Response) => {
-  const { categories } = req.body;
   const createdCategories = await prisma.category.createMany({
-    data: categories,
+    data: AllCategories.map((c) => ({
+      ...c,
+      slug: c.name.split(" ").join("_").toLowerCase(),
+    })),
   });
 
   return res.status(200).json({ createdCategories });
@@ -421,63 +424,62 @@ export const EditProduct = async (req: Request, res: Response) => {
   }
 };
 
-// export const createTempProducts = async (req: Request, res: Response) => {
-//   const users = await prisma.user.findMany();
-//   const sellers = users.filter((item) => item.type !== "buyer");
-//   const categories = await prisma.category.findMany();
-//   const newPs = AllProducts.map(async (item) => {
-//     try {
-//       const ranNum1 = Math.floor(Math.random() * AllImages.length);
-//       const ranNum2 = Math.floor(Math.random() * AllImages.length);
-//       const ranNum3 = Math.floor(Math.random() * AllImages.length);
-//       const ranNum4 = Math.floor(Math.random() * AllImages.length);
-//       const randomSeller = sellers[Math.floor(Math.random() * sellers.length)];
-//       const randomCategory =
-//         categories[Math.floor(Math.random() * sellers.length)];
-//       await prisma.product.create({
-//         data: {
-//           name: item.name + "_" + Math.floor(Math.random() * 1000).toString(),
-//           seller: {
-//             connect: {
-//               id: randomSeller.id,
-//             },
-//           },
-//           slug:
-//             item.name.toLowerCase().split(" ").join("_") +
-//             "_" +
-//             Math.floor(Math.random() * 200000).toString(),
-//           unitPrice: Math.random() * 5000,
-//           region: {
-//             connect: {
-//               id:
-//                 randomSeller.regionId ?? "0231e8e3-7296-42e5-ae9b-1baeec059e70",
-//             },
-//           },
-//           category: {
-//             connect: {
-//               id: randomCategory.id,
-//             },
-//           },
-//           unitWeight: item.unitWeight,
-//           unit: item.unit,
-//           quantity: item.quantity,
-//           description: item.description,
-//           location: item.location,
-//           images: [
-//             AllImages[ranNum1].download_url,
-//             AllImages[ranNum2].download_url,
-//             AllImages[ranNum3].download_url,
-//             AllImages[ranNum4].download_url,
-//           ],
-//           ratings: parseInt((Math.random() * 5).toFixed(1)),
-//         },
-//       });
-//     } catch (error) {
-//       console.log("Error", error);
-//     }
-//   });
+export const createTempProducts = async (req: Request, res: Response) => {
+  const users = await prisma.user.findMany();
+  const sellers = users.filter((item) => item.type !== "buyer");
+  const categories = await prisma.category.findMany();
+  const newPs = AllProducts.map(async (item) => {
+    try {
+      const ranNum1 = Math.floor(Math.random() * AllImages.length);
+      const ranNum2 = Math.floor(Math.random() * AllImages.length);
+      const ranNum3 = Math.floor(Math.random() * AllImages.length);
+      const ranNum4 = Math.floor(Math.random() * AllImages.length);
+      const randomSeller = sellers[Math.floor(Math.random() * sellers.length)];
+      const randomCategory =
+        categories[Math.floor(Math.random() * sellers.length)];
+      await prisma.product.create({
+        data: {
+          name: item.name + "_" + Math.floor(Math.random() * 1000).toString(),
+          seller: {
+            connect: {
+              id: randomSeller.id,
+            },
+          },
+          slug:
+            item.name.toLowerCase().split(" ").join("_") +
+            "_" +
+            Math.floor(Math.random() * 200000).toString(),
+          unitPrice: Math.random() * 5000,
+          region: {
+            connect: {
+              id: randomSeller.regionId ?? "cme8ixzgy0000wqs6bclsxnyb",
+            },
+          },
+          category: {
+            connect: {
+              id: randomCategory.id,
+            },
+          },
+          unitWeight: item.unitWeight,
+          unit: item.unit,
+          quantity: item.quantity,
+          description: item.description,
+          location: item.location,
+          images: [
+            AllImages[ranNum1].download_url,
+            AllImages[ranNum2].download_url,
+            AllImages[ranNum3].download_url,
+            AllImages[ranNum4].download_url,
+          ],
+          ratings: parseInt((Math.random() * 5).toFixed(1)),
+        },
+      });
+    } catch (error) {
+      console.log("Error", error);
+    }
+  });
 
-//   await Promise.all(newPs);
+  await Promise.all(newPs);
 
-//   return res.status(200).json({ products: newPs });
-// };
+  return res.status(200).json({ products: newPs });
+};
