@@ -61,7 +61,7 @@ export const InitiatePayment = async (req: Request, res: Response) => {
       data: paystackRes.data.data,
     });
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     throw new ServerException("Something went wrong", error);
   }
 };
@@ -141,7 +141,7 @@ export const VerifyPayment = async (req: Request, res: Response) => {
               id: group.logisticsProvider!.id,
             },
           },
-          type: "orderPlacement",
+          type: "orderAssignment",
           subject: `New Order: ${group.orderItems.length} Items Awaiting Pickup`,
           summary: `A new order has been placed containing ${group.orderItems.length} products from ${group.seller.name}. Prepare for pickup`,
           orderGroup: {

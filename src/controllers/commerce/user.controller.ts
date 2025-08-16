@@ -138,7 +138,7 @@ export const CreateUsers = async (req: Request, res: Response) => {
         },
       });
     } catch (error) {
-      console.log("Error", error);
+      // console.log("Error", error);
     }
   });
 

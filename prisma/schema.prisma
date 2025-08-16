@@ -201,9 +201,10 @@ model Review {
   logisticsProviderId   String?
   user                  User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId                String 
-  rating                Float
-  subject               String 
-  description           String 
+  productRating         String? 
+  productReview         String?
+  logisticsRating       String?
+  logisticsReview       String?
   createdAt             DateTime @default(now())
   notifications         Notification[]
 }

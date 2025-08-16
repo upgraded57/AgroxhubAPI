@@ -1,12 +1,8 @@
-import { Order, OrderGroup, PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
 import { BadRequestException } from "../../exceptions/bad-request";
 import { NotFoundException } from "../../exceptions/not-found";
-import {
-  generateOrderNumber,
-  validateRequiredFields,
-} from "../../functions/functions";
-import { ServerException } from "../../exceptions/server-error";
+import { validateRequiredFields } from "../../functions/functions";
 import { UnauthorizedException } from "../../exceptions/unauthorized";
 
 const prisma = new PrismaClient({

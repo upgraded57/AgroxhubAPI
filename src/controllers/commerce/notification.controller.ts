@@ -29,12 +29,33 @@ const notificationIncludes = {
       },
     },
   },
+
   productReview: {
-    review: true,
+    review: {
+      include: {
+        product: {
+          select: {
+            id: true,
+            slug: true,
+            images: true,
+            name: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            avatar: true,
+            name: true,
+          },
+        },
+      },
+    },
   },
+
   productSave: {
     product: { select: { id: true, name: true, images: true, slug: true } },
   },
+
   orderPlacement: {
     order: {
       include: {
@@ -63,6 +84,7 @@ const notificationIncludes = {
       },
     },
   },
+
   orderPickup: {
     orderGroup: {
       include: {
@@ -82,7 +104,9 @@ const notificationIncludes = {
       },
     },
   },
+
   milestone: {},
+
   orderInTransit: {
     orderGroup: {
       include: {
@@ -102,6 +126,7 @@ const notificationIncludes = {
       },
     },
   },
+
   orderDelivery: {
     orderGroup: {
       include: {
@@ -123,6 +148,7 @@ const notificationIncludes = {
     },
     product: true,
   },
+
   orderAssignment: {
     orderGroup: {
       include: {
@@ -131,6 +157,7 @@ const notificationIncludes = {
       },
     },
   },
+
   outOfStock: {
     product: { select: { id: true, name: true, images: true } },
   },
@@ -227,6 +254,30 @@ export const GetSingleNotification = async (req: Request, res: Response) => {
           avatar: foundNotif.logisticProvider.avatar,
         },
       }),
+      ...(foundNotif.review && {
+        review: {
+          id: foundNotif.review.id,
+          rating: foundNotif.review.productRating,
+          review: foundNotif.review.productReview,
+        },
+      }),
+      ...(foundNotif.review &&
+        foundNotif.review.user && {
+          user: {
+            id: foundNotif.review.id,
+            name: foundNotif.review.user.name,
+            avatar: foundNotif.review.user.avatar,
+          },
+        }),
+      ...(foundNotif.review &&
+        foundNotif.review.product && {
+          product: {
+            id: foundNotif.review.product.id,
+            name: foundNotif.review.product.name,
+            images: foundNotif.review.product.images,
+            slug: foundNotif.review.product.slug,
+          },
+        }),
       ...(foundNotif.order && {
         order: {
           id: foundNotif.order.orderNumber,
@@ -261,9 +312,6 @@ export const GetSingleNotification = async (req: Request, res: Response) => {
           pickupDate: foundNotif.orderGroup.pickupDate,
           deliveryDate: foundNotif.orderGroup.deliveryDate,
         }),
-      ...(foundNotif.review && {
-        review: foundNotif.review,
-      }),
     },
   });
 };

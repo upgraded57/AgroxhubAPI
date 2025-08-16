@@ -277,7 +277,9 @@ export const GetSingleProduct = async (req: Request, res: Response) => {
       views: { increment: 1 },
     },
     include: {
-      reviews: true,
+      reviews: {
+        include: { user: true },
+      },
       seller: true,
     },
   });
@@ -311,7 +313,19 @@ export const GetSingleProduct = async (req: Request, res: Response) => {
   return res.status(200).json({
     status: true,
     message: "Product found successfully",
-    product,
+    product: {
+      ...product,
+      reviews: product.reviews.map((r) => ({
+        rating: r.productRating,
+        review: r.productReview,
+        createdAt: r.createdAt,
+        user: {
+          id: r.user.id,
+          name: r.user.name,
+          avatar: r.user.avatar,
+        },
+      })),
+    },
   });
 };
 
@@ -358,7 +372,7 @@ export const DeleteProduct = async (req: Request, res: Response) => {
   const user = req.user;
   const cache = apicache.getIndex();
   const allCache = cache.all;
-  console.log(allCache);
+  // console.log(allCache);
 
   validateRequiredFields([
     {
@@ -475,7 +489,7 @@ export const createTempProducts = async (req: Request, res: Response) => {
         },
       });
     } catch (error) {
-      console.log("Error", error);
+      // console.log("Error", error);
     }
   });
 
