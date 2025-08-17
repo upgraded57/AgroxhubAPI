@@ -12,6 +12,7 @@ import checkoutRoute from "./checkout.route";
 import orderRoute from "./order.route";
 import paymentRoute from "./payment.route";
 import reviewRoute from "./review.route";
+import logisticsRoute from "./logistics.route";
 
 const router = Router();
 router.use("/auth", authRoute);
@@ -26,5 +27,6 @@ router.use("/checkout", checkoutRoute);
 router.use("/order", orderRoute);
 router.use("/pay", paymentRoute);
 router.use("/reviews", reviewRoute);
+router.use("/logistics", logisticsRoute);
 
 export default router;

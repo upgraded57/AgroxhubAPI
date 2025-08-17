@@ -5,7 +5,8 @@ import profileRoute from "./profile.route";
 import regionsRoute from "./regions.route";
 import deliverablesRoute from "./deliverables.route";
 import ordersRoute from "./orders.route";
-import notificationsRoute from "./notification.route";
+import notificationRoute from "./notification.route";
+import summaryRoute from "./summary.route";
 
 const router = Router();
 router.use("/auth", authRoute);
@@ -13,6 +14,7 @@ router.use("/profile", profileRoute);
 router.use("/regions", regionsRoute);
 router.use("/deliverables", deliverablesRoute);
 router.use("/orders", ordersRoute);
-router.use("/notifications", notificationsRoute);
+router.use("/notifications", notificationRoute);
+router.use("/summary", summaryRoute);
 
 export default router;

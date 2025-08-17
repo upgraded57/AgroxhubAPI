@@ -30,7 +30,11 @@ const notificationIncludes = {
     },
   },
   productReview: {
-    review: true,
+    review: {
+      include: {
+        user: true,
+      },
+    },
   },
   productSave: {
     product: { select: { id: true, name: true, images: true, slug: true } },
@@ -285,7 +289,14 @@ export const GetSingleNotification = async (req: Request, res: Response) => {
           deliveryDate: foundNotif.orderGroup.deliveryDate,
         }),
       ...(foundNotif.review && {
-        review: foundNotif.review,
+        id: foundNotif.review.id,
+        rating: foundNotif.review.logisticsRating,
+        review: foundNotif.review.logisticsReview,
+        user: {
+          id: foundNotif.review.user.id,
+          name: foundNotif.review.user.name,
+          avatar: foundNotif.review.user.avatar,
+        },
       }),
     },
   });
