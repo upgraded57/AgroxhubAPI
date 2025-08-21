@@ -17,27 +17,29 @@ export const GetReviews = async (req: Request, res: Response) => {
     include: {
       user: true,
     },
+    orderBy: {
+      createdAt: "desc",
+    },
   });
 
   if (!reviews) {
     throw new NotFoundException("Unable to fetch reviews");
   }
+  const totalRatings = reviews.reduce(
+    (acc, r) =>
+      r.logisticsRating ? (acc += parseInt(r.logisticsRating)) : acc,
+    0
+  );
 
   res.status(200).json({
     status: true,
     message: "reviews found successfully",
+    average: totalRatings / reviews.length,
     reviews: reviews.length
       ? reviews.map((r) => ({
           review: r.logisticsReview,
           rating: r.logisticsRating,
           createdAt: r.createdAt,
-          average: reviews.reduce((acc, r) => {
-            let total = 0;
-            if (r.logisticsRating) {
-              total = acc += parseInt(r.logisticsRating);
-            }
-            return total / reviews.length;
-          }, 0),
           user: {
             id: r.user.id,
             avatar: r.user.avatar,

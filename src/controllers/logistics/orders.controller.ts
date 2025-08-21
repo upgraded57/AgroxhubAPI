@@ -37,6 +37,9 @@ export const GetOrders = async (req: Request, res: Response) => {
         },
       },
     },
+    orderBy: {
+      createdAt: "desc",
+    },
   });
 
   res.status(200).json({

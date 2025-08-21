@@ -168,6 +168,9 @@ export const GetNotifications = async (req: Request, res: Response) => {
   const notifications = await prisma.notification.findMany({
     where: {
       OR: [{ userId: user?.id }, { isGeneral: true }],
+      target: {
+        not: "logistics",
+      },
     },
     select: {
       id: true,
@@ -194,7 +197,9 @@ export const GetSingleNotification = async (req: Request, res: Response) => {
 
   // 1️⃣ First query — get type
   const notifMeta = await prisma.notification.findUnique({
-    where: { id: notificationId },
+    where: {
+      id: notificationId,
+    },
     select: { type: true },
   });
 
