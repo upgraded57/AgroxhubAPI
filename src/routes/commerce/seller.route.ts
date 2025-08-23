@@ -11,8 +11,10 @@ import {
   GetSellerFollowers,
   GetSellerMostPurchasedProducts,
   GetSellerNewestProducts,
+  GetSellerOrders,
   GetSellerProducts,
   getSellers,
+  GetSellerSingleOrder,
   GetSellerSummary,
   GetSimilarSellers,
 } from "../../controllers/commerce/seller.controller";
@@ -36,6 +38,20 @@ router.get(
   validateSeller,
   cache("5 minutes"),
   errorCatcher(GetSellerFollowers)
+);
+
+router.get(
+  "/orders/",
+  validateAuth,
+  validateSeller,
+  errorCatcher(GetSellerOrders)
+);
+
+router.get(
+  "/orders/:orderId",
+  validateAuth,
+  validateSeller,
+  errorCatcher(GetSellerSingleOrder)
 );
 
 router.get("/:sellerId", cache("5 minutes"), errorCatcher(getSeller));

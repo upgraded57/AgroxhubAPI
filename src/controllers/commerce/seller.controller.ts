@@ -445,3 +445,97 @@ export const GetSellerSummary = async (req: Request, res: Response) => {
     summary,
   });
 };
+
+export const GetSellerOrders = async (req: Request, res: Response) => {
+  const user = req.user;
+  const orders = await prisma.orderGroup.findMany({
+    where: {
+      sellerId: user!.id,
+    },
+    include: {
+      _count: {
+        select: {
+          orderItems: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return res.status(200).json({
+    status: true,
+    message: "Orders found successfully",
+    orders: orders.map((order) => ({
+      id: order.id,
+      status: order.status,
+      createdAt: order.createdAt,
+      pickupDate: order.pickupDate,
+      deliveryDate: order.deliveryDate,
+      productsCount: order._count.orderItems,
+    })),
+  });
+};
+
+export const GetSellerSingleOrder = async (req: Request, res: Response) => {
+  const { orderId } = req.params;
+
+  const order = await prisma.orderGroup.findUnique({
+    where: {
+      id: orderId,
+    },
+    include: {
+      orderItems: {
+        include: {
+          product: true,
+        },
+      },
+      seller: true,
+      order: {
+        include: {
+          user: true,
+        },
+      },
+      logisticsProvider: {
+        select: {
+          name: true,
+          avatar: true,
+        },
+      },
+    },
+  });
+
+  if (!order) {
+    throw new NotFoundException("Order not found");
+  }
+
+  res.status(200).json({
+    status: true,
+    message: "Orders found successfully",
+    order: {
+      id: order.id,
+      pickupAddress: order.seller.address,
+      deliveryAddress: order.order.deliveryAddress,
+      pickupDate: order.pickupDate,
+      deliveryDate: order.deliveryDate,
+      status: order.status,
+      createdAt: order.createdAt,
+      user: {
+        name: order.order.user.name,
+        avatar: order.order.user.avatar,
+      },
+      logisticsProvider: {
+        name: order.logisticsProvider?.name,
+        avatar: order.logisticsProvider?.avatar,
+      },
+      products: order.orderItems.map((el) => ({
+        slug: el.product.slug,
+        name: el.product.name,
+        quantity: el.quantity,
+        unit: el.product.unit,
+        images: el.product.images,
+      })),
+    },
+  });
+};
