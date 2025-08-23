@@ -650,6 +650,7 @@ export const getLogisticDistance = async (payload: {
 
     return distanceInKm * CALIBRATED_DISTANCE_DIFFERENCE_IN_KM;
   } catch (error) {
+    console.log("Logistics pricing error", error);
     throw new ServerException("Logistics distance calculation error", error);
   }
 };
