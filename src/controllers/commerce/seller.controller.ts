@@ -167,7 +167,7 @@ export const GetSellerProducts = async (req: Request, res: Response) => {
     where: whereCondition,
     take: perPage,
     skip: skipCount,
-    orderBy: { createdAt: "asc" },
+    orderBy: { createdAt: "desc" },
   });
 
   // Get total count of filtered products

@@ -53,7 +53,7 @@ export const UpdateAvatar = async (req: Request, res: Response) => {
       throw new BadRequestException("Avatar cannot exceed 2MB");
     }
 
-    avatarPath = await uploadAvatar(avatar.path);
+    avatarPath = await uploadAvatar(avatar);
   }
 
   await prisma.logisticsProvider.update({

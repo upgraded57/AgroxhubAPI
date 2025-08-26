@@ -8,10 +8,7 @@ import {
   GetUser,
 } from "../../controllers/commerce/user.controller";
 import { validateAuth } from "../../middlewares/middlewares";
-import multer from "multer";
-const upload = multer({
-  dest: "./uploads/avatars",
-});
+import { upload } from "../../constants/constants";
 
 const router = Router();
 

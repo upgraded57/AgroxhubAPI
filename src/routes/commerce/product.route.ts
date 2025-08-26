@@ -16,10 +16,7 @@ import {
   GetSingleProduct,
 } from "../../controllers/commerce/product.controller";
 import { validateAuth, validateSeller } from "../../middlewares/middlewares";
-import multer from "multer";
-const upload = multer({
-  dest: "./uploads/product-images",
-});
+import { upload } from "../../constants/constants";
 
 const router = Router();
 

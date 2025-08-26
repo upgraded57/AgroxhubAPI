@@ -40,6 +40,7 @@ model User {
   cart                    Cart?
   orders                  Order[]
   orderGroups             OrderGroup[]
+  recentViews             String[] @default([])
 
 
   following               Following[] @relation("UserFollowing")
@@ -101,6 +102,7 @@ model Product {
   clicks                  Int @default(0)
   orders                  OrderItem[]
   notifications           Notification[]
+  min_sellable_quantity   Int @default(1)
 }
 
 enum promotionLevel {

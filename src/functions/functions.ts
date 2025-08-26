@@ -10,6 +10,7 @@ import {
   DEFAULT_LOCAL_RADIUS_KM,
 } from "../constants/constants";
 import { paystackInstance } from "./external";
+import { Readable } from "stream";
 
 dotenv.config({
   path: "./.env",
@@ -20,6 +21,19 @@ const prisma = new PrismaClient({
 });
 
 const distanceUrl = process.env.DISTANCE_API as string;
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+const bufferToStream = (buffer: Buffer) => {
+  const readable = new Readable();
+  readable.push(buffer);
+  readable.push(null);
+  return readable;
+};
 
 export const findUser = async (
   type: "email" | "token" | "id",
@@ -556,52 +570,46 @@ export const sendActivationLink = (
   });
 };
 
-export const uploadAvatar = async (avatar: string) => {
-  // Configuration
-  cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
+export const uploadAvatar = async (file: Express.Multer.File) => {
+  return new Promise<string>((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: "agroxhub" },
+      (error, result) => {
+        if (error) {
+          return reject(new ServerException("Unable to upload avatar", error));
+        }
+        if (!result?.secure_url) {
+          return reject(new ServerException("Cloudinary returned no URL"));
+        }
+        resolve(result.secure_url);
+      }
+    );
+
+    bufferToStream(file.buffer).pipe(stream);
   });
-
-  // Upload an image
-  const uploadResult = await cloudinary.uploader
-    .upload(avatar, {
-      folder: "agroxhub",
-    })
-    .catch((error) => {
-      throw new ServerException("Unable to upload avatar", error);
-    });
-
-  return uploadResult.url;
 };
 
-export const uploadProductImages = async (images: Express.Multer.File[]) => {
-  // Configuration
-  cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-  });
+export const uploadProductImages = async (files: Express.Multer.File[]) => {
+  const uploadPromises = files.map(
+    (file) =>
+      new Promise<string>((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "product images" },
+          (error, result) => {
+            if (error) {
+              console.log("Upload error", error);
+              return reject(error);
+            }
+            if (result?.secure_url) return resolve(result.secure_url);
+            reject(new Error("Cloudinary upload failed"));
+          }
+        );
 
-  // Map images to upload promises
-  const uploadPromises = images.map(async (item) => {
-    try {
-      const uploadResult = await cloudinary.uploader.upload(item.path, {
-        folder: "product images",
-      });
+        bufferToStream(file.buffer).pipe(stream); // stream file buffer to Cloudinary
+      })
+  );
 
-      const url = uploadResult.url;
-      return url;
-    } catch (error) {
-      throw new ServerException("Unable to upload product image", error);
-    }
-  });
-
-  // Wait for all uploads to complete
-  const imgPaths = await Promise.all(uploadPromises);
-
-  return imgPaths;
+  return Promise.all(uploadPromises);
 };
 
 export const generateOrderNumber = (user: User) => {

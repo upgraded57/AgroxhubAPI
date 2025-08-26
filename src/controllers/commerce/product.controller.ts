@@ -40,6 +40,10 @@ export const GetAllCateories = async (req: Request, res: Response) => {
   });
 };
 
+// export const GetSuggestedProducts = (req: Request, res: Response) => {
+
+// }
+
 export const CreateCategories = async (req: Request, res: Response) => {
   const createdCategories = await prisma.category.createMany({
     data: AllCategories.map((c) => ({
@@ -64,6 +68,7 @@ export const CreateProduct = async (req: Request, res: Response) => {
     unitWeight,
     expiryDate,
     unitPrice,
+    min_sellable_quantity,
   } = req.body;
 
   const images = req.files as Express.Multer.File[];
@@ -106,6 +111,10 @@ export const CreateProduct = async (req: Request, res: Response) => {
       name: "Product Unit Price",
       value: unitPrice,
     },
+    {
+      name: "Minimum sellable quantity",
+      value: min_sellable_quantity,
+    },
   ]);
 
   let imgUrls: string[] = [];
@@ -134,6 +143,7 @@ export const CreateProduct = async (req: Request, res: Response) => {
       location,
       name,
       quantity: parseInt(quantity),
+      min_sellable_quantity: parseInt(min_sellable_quantity),
       unitWeight,
       unit,
       unitPrice: parseInt(unitPrice),
