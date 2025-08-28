@@ -7,7 +7,7 @@ import cors from "cors";
 dotenv.config();
 import { User, Region, Cart } from "@prisma/client";
 
-type ExtendedUser = User & {
+type ExtendedUser = Omit<User, "password"> & {
   region: Region | null;
   cart: Cart | null;
 };

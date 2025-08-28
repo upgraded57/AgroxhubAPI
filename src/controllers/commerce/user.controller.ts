@@ -18,10 +18,55 @@ const prisma = new PrismaClient({
 });
 
 export const GetUser = async (req: Request, res: Response) => {
+  const user = req.user;
+  const foundUser = await prisma.user.findUnique({
+    where: {
+      id: user?.id,
+    },
+    select: {
+      orders: {
+        where: {
+          paymentStatus: "paid",
+        },
+        select: {
+          orderGroups: {
+            select: {
+              status: true,
+              orderItems: {
+                select: {
+                  id: true,
+                },
+              },
+            },
+            // where: {
+            //   status: "delivered",
+            // },
+          },
+        },
+      },
+    },
+  });
+
+  const totalPurchases = foundUser?.orders.flatMap((o) =>
+    o.orderGroups.flatMap((g) => g.orderItems.flat(Infinity))
+  ).length;
+
+  const deliveredPurchases = foundUser?.orders.flatMap((o) =>
+    o.orderGroups
+      .filter((el) => el.status === "delivered")
+      .flatMap((g) => g.orderItems.flat(Infinity))
+  ).length;
+
   return res.status(200).json({
     status: true,
     message: "User found successfully",
-    user: req.user,
+    user: {
+      ...req.user,
+      purchases: {
+        total: totalPurchases,
+        delivered: deliveredPurchases,
+      },
+    },
   });
 };
 

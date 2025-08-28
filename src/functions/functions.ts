@@ -612,7 +612,7 @@ export const uploadProductImages = async (files: Express.Multer.File[]) => {
   return Promise.all(uploadPromises);
 };
 
-export const generateOrderNumber = (user: User) => {
+export const generateOrderNumber = (user: Omit<User, "password">) => {
   const initials =
     user.name.toUpperCase().split("")[0] + user.name.toUpperCase().split("")[1];
   const now = new Date();
