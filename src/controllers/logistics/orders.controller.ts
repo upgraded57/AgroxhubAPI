@@ -95,6 +95,7 @@ export const GetSingleOrder = async (req: Request, res: Response) => {
       deliveryDate: order.deliveryDate,
       logisticsNote: order.order.logisticsNote,
       status: order.status,
+      createdAt: order.createdAt,
       user: {
         name: order.order.user.name,
         avatar: order.order.user.avatar,
@@ -369,6 +370,8 @@ export const CompleteOrder = async (req: Request, res: Response) => {
           product: {
             select: {
               name: true,
+              quantity: true,
+              low_stock_alert_level: true,
             },
           },
         },
@@ -394,7 +397,19 @@ export const CompleteOrder = async (req: Request, res: Response) => {
     );
   }
 
-  await prisma.orderGroup.update({
+  // Update all products purchases count
+  const updatedProductQuantities = order.orderItems.map((item) => {
+    return prisma.product.update({
+      where: {
+        id: item.productId,
+      },
+      data: {
+        purchases: item.quantity,
+      },
+    });
+  });
+
+  const updateOrderGroupPaymentStatus = prisma.orderGroup.update({
     where: {
       id: orderId,
     },
@@ -404,7 +419,7 @@ export const CompleteOrder = async (req: Request, res: Response) => {
   });
 
   // Send delivery notification to buyer
-  await prisma.notification.create({
+  const logisticsNotification = prisma.notification.create({
     data: {
       isGeneral: false,
       user: {
@@ -471,7 +486,49 @@ export const CompleteOrder = async (req: Request, res: Response) => {
     });
   });
 
-  await Promise.all(sellerNotifications);
+  await prisma.$transaction([
+    updateOrderGroupPaymentStatus,
+    logisticsNotification,
+    ...sellerNotifications,
+    ...updatedProductQuantities,
+  ]);
+
+  // Fetch product updated quantities AFTER transaction
+  const updatedProducts = await prisma.product.findMany({
+    where: {
+      id: { in: order.orderItems.map((i) => i.productId) },
+    },
+    select: {
+      id: true,
+      name: true,
+      quantity: true,
+      low_stock_alert_level: true,
+      unit: true,
+    },
+  });
+
+  // Send almost out of stock notifications to seller if needed
+  const outOfStockNotifications = updatedProducts
+    .filter((p) => p.quantity <= p.low_stock_alert_level)
+    .map((p) =>
+      prisma.notification.create({
+        data: {
+          isGeneral: false,
+          user: { connect: { id: order.sellerId } },
+          type: "outOfStock",
+          subject: `Product almost out of stock`,
+          summary: `Only ${p.quantity} ${p.unit}${
+            p.quantity > 1 ? "s" : ""
+          } of ${p.name} is left in your store. Restock now!`,
+          productQuantity: p.quantity,
+          product: { connect: { id: p.id } },
+        },
+      })
+    );
+
+  // Run notifications outside the first transaction
+  await Promise.all(outOfStockNotifications);
+
   return res.status(200).json({
     status: true,
     message: "Order delivered successfully",

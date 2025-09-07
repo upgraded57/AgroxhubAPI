@@ -29,6 +29,9 @@ app.use(express.json());
 app.use(cors());
 
 // Routes
+app.get("/", (_req: Request, res: Response) => {
+  res.send("Welcome to Agroxhub's API infrastructure");
+});
 app.use("/api/v1", indexRoute);
 app.use("/api/logistics/v1", logisticsIndexRoute);
 

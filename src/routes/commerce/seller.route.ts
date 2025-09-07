@@ -68,7 +68,7 @@ router.get(
 
 router.get(
   "/:sellerId/products",
-  cache("5 minutes"),
+  // cache("5 minutes"),
   errorCatcher(GetSellerProducts)
 );
 

@@ -1,4 +1,4 @@
-import { NotificationType, Prisma, PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
 import { validateRequiredFields } from "../../functions/functions";
 import { NotFoundException } from "../../exceptions/not-found";
@@ -159,7 +159,7 @@ const notificationIncludes = {
   },
 
   outOfStock: {
-    product: { select: { id: true, name: true, images: true } },
+    product: { select: { id: true, name: true, images: true, slug: true } },
   },
 } as const;
 
@@ -237,6 +237,7 @@ export const GetSingleNotification = async (req: Request, res: Response) => {
           id: foundNotif.product.id,
           name: foundNotif.product.name,
           image: foundNotif.product.images[0],
+          images: foundNotif.product.images,
           unit: foundNotif.product.unit,
           slug: foundNotif.product.slug,
         },

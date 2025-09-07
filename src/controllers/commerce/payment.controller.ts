@@ -194,7 +194,24 @@ export const VerifyPayment = async (req: Request, res: Response) => {
         })
       );
 
-      return [logisticsNotification, ...sellerNotifications];
+      const updatedProductQuantities = group.orderItems.map((item) =>
+        prisma.product.update({
+          where: {
+            id: item.productId,
+          },
+          data: {
+            quantity: {
+              decrement: item.quantity,
+            },
+          },
+        })
+      );
+
+      return [
+        logisticsNotification,
+        ...sellerNotifications,
+        ...updatedProductQuantities,
+      ];
     });
     await prisma.$transaction([
       prisma.order.update({

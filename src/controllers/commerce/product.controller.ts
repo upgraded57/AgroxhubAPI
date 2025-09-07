@@ -40,10 +40,6 @@ export const GetAllCateories = async (req: Request, res: Response) => {
   });
 };
 
-// export const GetSuggestedProducts = (req: Request, res: Response) => {
-
-// }
-
 export const CreateCategories = async (req: Request, res: Response) => {
   const createdCategories = await prisma.category.createMany({
     data: AllCategories.map((c) => ({
@@ -69,6 +65,7 @@ export const CreateProduct = async (req: Request, res: Response) => {
     expiryDate,
     unitPrice,
     min_sellable_quantity,
+    low_stock_alert_level,
   } = req.body;
 
   const images = req.files as Express.Multer.File[];
@@ -112,14 +109,29 @@ export const CreateProduct = async (req: Request, res: Response) => {
       value: unitPrice,
     },
     {
-      name: "Minimum sellable quantity",
+      name: "Minimum Sellable Quantity",
       value: min_sellable_quantity,
+    },
+    {
+      name: "Low Stock Alert Level",
+      value: low_stock_alert_level,
     },
   ]);
 
   let imgUrls: string[] = [];
 
-  if (images && images.length > 0) {
+  // check product file sizes
+  if (images) {
+    images.forEach((img) => {
+      if (img.size > 2 * 1024 * 1024) {
+        return res.status(400).json({
+          status: false,
+          message: "Product images must be less than 2MB in size",
+        });
+      }
+    });
+
+    // Upload images
     imgUrls = await uploadProductImages(images);
   }
 
@@ -144,6 +156,7 @@ export const CreateProduct = async (req: Request, res: Response) => {
       name,
       quantity: parseInt(quantity),
       min_sellable_quantity: parseInt(min_sellable_quantity),
+      low_stock_alert_level: parseInt(low_stock_alert_level),
       unitWeight,
       unit,
       unitPrice: parseInt(unitPrice),
@@ -289,6 +302,9 @@ export const GetSingleProduct = async (req: Request, res: Response) => {
     include: {
       reviews: {
         include: { user: true },
+        orderBy: {
+          createdAt: "desc",
+        },
       },
       seller: true,
     },
@@ -310,7 +326,7 @@ export const GetSingleProduct = async (req: Request, res: Response) => {
         type: NotificationType.milestone,
         subject: "New Product Milestone!",
         summary: `Your product - ${product.name} - has reached ${product.clicks} clicks. Expect orders soon!`,
-        milestone: "10 Clicks",
+        milestone: `${product.clicks} Clicks`,
         product: {
           connect: {
             id: product.id,
@@ -423,7 +439,25 @@ export const DeleteProduct = async (req: Request, res: Response) => {
 
 export const EditProduct = async (req: Request, res: Response) => {
   const { slug } = req.params;
-  // const {name, }
+  const {
+    name,
+    categoryId,
+    description,
+    unit,
+    quantity,
+    sellerId,
+    location,
+    regionId,
+    unitWeight,
+    expiryDate,
+    unitPrice,
+    min_sellable_quantity,
+    low_stock_alert_level,
+    images: oldImgs,
+  } = req.body;
+
+  const images = req.files as Express.Multer.File[];
+
   const user = req.user;
   validateRequiredFields([
     {
@@ -446,6 +480,43 @@ export const EditProduct = async (req: Request, res: Response) => {
   if (user?.id !== product.sellerId) {
     throw new UnauthorizedException("Cannot edit another seller product");
   }
+
+  // Upload new images if they exist
+  let imgUrls: string[] = [];
+
+  if (images && images.length > 0) {
+    imgUrls = await uploadProductImages(images);
+  }
+
+  const newImages = [...oldImgs, ...imgUrls];
+
+  const updatedProduct = await prisma.product.update({
+    where: {
+      slug,
+    },
+    data: {
+      name,
+      categoryId,
+      description,
+      unit,
+      quantity: parseInt(quantity),
+      sellerId,
+      location,
+      regionId,
+      unitWeight,
+      expiryDate,
+      unitPrice: parseInt(unitPrice),
+      min_sellable_quantity: parseInt(min_sellable_quantity),
+      low_stock_alert_level: parseInt(low_stock_alert_level),
+      images: newImages,
+    },
+  });
+
+  return res.status(200).json({
+    status: true,
+    message: "Porduct updated successfully",
+    product: updatedProduct,
+  });
 };
 
 export const createTempProducts = async (req: Request, res: Response) => {

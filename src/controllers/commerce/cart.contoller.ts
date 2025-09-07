@@ -5,6 +5,7 @@ import { NotFoundException } from "../../exceptions/not-found";
 import * as dotenv from "dotenv";
 import { validateRequiredFields } from "../../functions/functions";
 import { CartItemType } from "../../types/cartItemType";
+import { ForbiddenException } from "../../exceptions/forbidden";
 dotenv.config({ path: "./.env" });
 
 const prisma = new PrismaClient({
@@ -134,10 +135,34 @@ export const AddItemToCart = async (req: Request, res: Response) => {
   // Check if product exists
   const product = await prisma.product.findUnique({
     where: { slug },
-    select: { id: true },
+    select: {
+      id: true,
+      quantity: true,
+      min_sellable_quantity: true,
+      unit: true,
+    },
   });
 
   if (!product) throw new NotFoundException("Product not found");
+
+  // Check if product is available
+  if (product.quantity === 0) {
+    throw new ForbiddenException("Product is out of stock");
+  }
+
+  // Check if product enough quantity to add to cart
+  if (product.quantity < quantity) {
+    throw new ForbiddenException(
+      `Cannot order more than ${product.quantity} ${product.unit}`
+    );
+  }
+
+  // Check if enough product minimum quantity is ordered
+  if (product.min_sellable_quantity > quantity) {
+    throw new ForbiddenException(
+      `Please order at least ${product.min_sellable_quantity} ${product.unit}`
+    );
+  }
 
   // Ensure the user has a cart
   const userCart = await prisma.cart.upsert({
@@ -145,13 +170,6 @@ export const AddItemToCart = async (req: Request, res: Response) => {
     update: {},
     create: { user: { connect: { id: user?.id } } },
   });
-
-  // // Add or Update Cart Item
-  // const data = await prisma.cartItem.upsert({
-  //   where: { cartId: userCart.id, slug },
-  //   update: { quantity: parseInt(quantity) },
-  //   create: { slug, quantity: parseInt(quantity), cartId: userCart.id },
-  // });
 
   // check if cartItem is in user cart
   await prisma.cartItem.upsert({

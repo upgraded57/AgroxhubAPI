@@ -9,6 +9,7 @@ import {
   CreateProduct,
   // createTempProducts,
   DeleteProduct,
+  EditProduct,
   GetAllCateories,
   GetAllProducts,
   getRecentProducts,
@@ -24,7 +25,18 @@ router.get("/", errorCatcher(GetAllProducts));
 router.get("/recent", errorCatcher(getRecentProducts));
 router.get("/categories", cache("10 minutes"), errorCatcher(GetAllCateories));
 // router.post("/categories", errorCatcher(CreateCategories));
-router.get("/:slug", cache("5 minutes"), errorCatcher(GetSingleProduct));
+router.get(
+  "/:slug",
+  // cache("5 minutes"),
+  errorCatcher(GetSingleProduct)
+);
+router.patch(
+  "/:slug",
+  validateAuth,
+  validateSeller,
+  upload.array("images", 4),
+  errorCatcher(EditProduct)
+);
 router.delete("/:slug", validateAuth, errorCatcher(DeleteProduct));
 router.get(
   "/:slug/similar",

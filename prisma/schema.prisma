@@ -103,6 +103,7 @@ model Product {
   orders                  OrderItem[]
   notifications           Notification[]
   min_sellable_quantity   Int @default(1)
+  low_stock_alert_level   Int @default(10)
 }
 
 enum promotionLevel {

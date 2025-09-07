@@ -149,9 +149,11 @@ export const CreateReview = async (req: Request, res: Response) => {
     throw new NotFoundException("Product not found");
   }
 
+  // Check if same user has reviewed product in the past
   const isReviewed = foundProduct.reviews.find((r) => r.user.id === user!.id);
 
   let review: Review;
+
   if (isReviewed && isReviewed.id) {
     review = await prisma.review.update({
       where: {

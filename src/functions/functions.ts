@@ -594,7 +594,8 @@ export const uploadProductImages = async (files: Express.Multer.File[]) => {
     (file) =>
       new Promise<string>((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
-          { folder: "product images" },
+          { folder: "product images", timeout: 120000 },
+
           (error, result) => {
             if (error) {
               console.log("Upload error", error);
