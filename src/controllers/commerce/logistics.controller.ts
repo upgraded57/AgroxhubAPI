@@ -88,7 +88,7 @@ export const ReviewLogisticsProvider = async (req: Request, res: Response) => {
       },
       subject: "You have a new review",
       summary:
-        "A user just reviewed your service. Check out what the said about you",
+        "A user just reviewed your service. Check out what was said about you",
     },
   });
 

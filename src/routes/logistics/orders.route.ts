@@ -7,6 +7,7 @@ import {
   CompleteOrder,
   GetOrders,
   GetSingleOrder,
+  ReturnOrder,
   TransitOrder,
   UpdateOrderDates,
 } from "../../controllers/logistics/orders.controller";
@@ -31,10 +32,17 @@ router.patch(
   validateLogisticsAuth,
   errorCatcher(TransitOrder)
 );
+
 router.patch(
   "/:orderId/complete",
   validateLogisticsAuth,
   errorCatcher(CompleteOrder)
+);
+
+router.patch(
+  "/:orderId/return",
+  validateLogisticsAuth,
+  errorCatcher(ReturnOrder)
 );
 
 export default router;

@@ -105,7 +105,10 @@ const notificationIncludes = {
     },
   },
 
-  milestone: {},
+  milestone: {
+    product: { select: { id: true, name: true, images: true, slug: true } },
+    // milestone: true,
+  },
 
   orderInTransit: {
     orderGroup: {
@@ -147,6 +150,27 @@ const notificationIncludes = {
       },
     },
     product: true,
+  },
+
+  orderReturn: {
+    orderGroup: {
+      include: {
+        logisticsProvider: { select: { id: true, name: true, avatar: true } },
+        orderItems: { include: { product: true } },
+      },
+    },
+    order: {
+      include: {
+        user: { select: { id: true, name: true, avatar: true } },
+        deliveryRegion: {
+          select: {
+            state: true,
+            name: true,
+            lcda: true,
+          },
+        },
+      },
+    },
   },
 
   orderAssignment: {
@@ -232,6 +256,9 @@ export const GetSingleNotification = async (req: Request, res: Response) => {
       attachment: foundNotif.attachment,
       unread: foundNotif.unread,
       productQuantity: foundNotif.productQuantity,
+      ...(foundNotif.rejectionReason && {
+        rejectionReason: foundNotif.rejectionReason,
+      }),
       ...(foundNotif.product && {
         product: {
           id: foundNotif.product.id,
@@ -240,6 +267,10 @@ export const GetSingleNotification = async (req: Request, res: Response) => {
           images: foundNotif.product.images,
           unit: foundNotif.product.unit,
           slug: foundNotif.product.slug,
+          ...(foundNotif.type === "orderPlacement" && {
+            totalPrice:
+              foundNotif.productQuantity * foundNotif.product.unitPrice,
+          }),
         },
       }),
       ...(foundNotif.orderGroup && {
@@ -318,6 +349,10 @@ export const GetSingleNotification = async (req: Request, res: Response) => {
           pickupDate: foundNotif.orderGroup.pickupDate,
           deliveryDate: foundNotif.orderGroup.deliveryDate,
         }),
+
+      ...(foundNotif.milestone && {
+        milestone: foundNotif.milestone,
+      }),
     },
   });
 };

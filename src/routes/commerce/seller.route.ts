@@ -12,6 +12,7 @@ import {
   GetSellerMostPurchasedProducts,
   GetSellerNewestProducts,
   GetSellerOrders,
+  GetSellerOrderSummary,
   GetSellerProducts,
   getSellers,
   GetSellerSingleOrder,
@@ -45,6 +46,13 @@ router.get(
   validateAuth,
   validateSeller,
   errorCatcher(GetSellerOrders)
+);
+
+router.get(
+  "/orders/summary",
+  validateAuth,
+  validateSeller,
+  errorCatcher(GetSellerOrderSummary)
 );
 
 router.get(

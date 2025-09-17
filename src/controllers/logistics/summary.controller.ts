@@ -32,7 +32,11 @@ export const GetSummary = async (req: Request, res: Response) => {
       in_transit: summary.filter((s) => s.status === "in_transit").length,
       delivered: summary.filter((s) => s.status === "delivered").length,
       rejected: summary.filter((s) => s.status === "rejected").length,
-      balance: summary
+      total_balance: summary.reduce(
+        (acc, s) => (acc += s.logisticsCost || 0),
+        0
+      ),
+      withdrawable_balance: summary
         .filter((el) => el.status === "delivered")
         .reduce((acc, s) => (acc += s.logisticsCost || 0), 0),
     },

@@ -409,7 +409,7 @@ export const CompleteOrder = async (req: Request, res: Response) => {
     });
   });
 
-  const updateOrderGroupPaymentStatus = prisma.orderGroup.update({
+  const updateOrderGroupStatus = prisma.orderGroup.update({
     where: {
       id: orderId,
     },
@@ -487,7 +487,7 @@ export const CompleteOrder = async (req: Request, res: Response) => {
   });
 
   await prisma.$transaction([
-    updateOrderGroupPaymentStatus,
+    updateOrderGroupStatus,
     logisticsNotification,
     ...sellerNotifications,
     ...updatedProductQuantities,
@@ -532,5 +532,126 @@ export const CompleteOrder = async (req: Request, res: Response) => {
   return res.status(200).json({
     status: true,
     message: "Order delivered successfully",
+  });
+};
+
+export const ReturnOrder = async (req: Request, res: Response) => {
+  const { orderId } = req.params;
+  const { reason } = req.body;
+
+  validateRequiredFields([
+    {
+      name: "Return reason",
+      value: reason,
+    },
+  ]);
+
+  const order = await prisma.orderGroup.findUnique({
+    where: {
+      id: orderId,
+    },
+    select: {
+      sellerId: true,
+      status: true,
+      id: true,
+      orderCompletionCode: true,
+      order: {
+        select: {
+          id: true,
+          userId: true,
+          orderNumber: true,
+        },
+      },
+      logisticsProviderId: true,
+      orderItems: {
+        include: {
+          product: {
+            select: {
+              name: true,
+              quantity: true,
+              low_stock_alert_level: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!order) {
+    throw new NotFoundException("Order not found");
+  }
+
+  if (order.status !== "in_transit") {
+    throw new UnauthorizedException(
+      "Please transit order first before returning order"
+    );
+  }
+
+  const updateOrderGroupStatus = prisma.orderGroup.update({
+    where: {
+      id: orderId,
+    },
+    data: {
+      status: "rejected",
+    },
+  });
+
+  // Send rejection notification to seller
+  const sellerNotifications = prisma.notification.create({
+    data: {
+      isGeneral: false,
+      user: {
+        connect: {
+          id: order.sellerId,
+        },
+      },
+      type: "orderReturn",
+      subject: `Order Rejected`,
+      summary: `Unfortunately, order - ${order.order.orderNumber} was rejected by the buyer. Check out their reason`,
+      logisticProvider: {
+        connect: {
+          id: order.logisticsProviderId!,
+        },
+      },
+      orderGroup: {
+        connect: {
+          id: order.id,
+        },
+      },
+      order: {
+        connect: {
+          id: order.order.id,
+        },
+      },
+      rejectionReason: reason,
+    },
+  });
+
+  // Create rejection record in db
+  const createRejectRecord = prisma.returnedOrders.create({
+    data: {
+      orderGroup: {
+        connect: {
+          id: orderId,
+        },
+      },
+      reason,
+      buyer: {
+        connect: {
+          id: order.order.userId,
+        },
+      },
+    },
+  });
+
+  await prisma.$transaction([
+    updateOrderGroupStatus,
+    sellerNotifications,
+    createRejectRecord,
+  ]);
+
+  return res.status(200).json({
+    status: true,
+    message: "Order rejected successfully",
   });
 };

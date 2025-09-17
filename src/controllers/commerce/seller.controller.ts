@@ -415,10 +415,24 @@ export const GetSellerSummary = async (req: Request, res: Response) => {
     },
   });
 
-  let totalProductsPrice = 0;
-  sellerProducts.forEach((item) => {
-    totalProductsPrice += item.totalPrice;
-  });
+  let totalDeliveredProductsPrice = 0;
+  let availableProductsPrice = 0;
+
+  sellerProducts
+    .filter(
+      (item) =>
+        item.orderGroup.status === "in_transit" ||
+        item.orderGroup.status === "pending"
+    )
+    .forEach((item) => {
+      availableProductsPrice += item.totalPrice;
+    });
+
+  sellerProducts
+    .filter((item) => item.orderGroup.status === "delivered")
+    .forEach((item) => {
+      totalDeliveredProductsPrice += item.totalPrice;
+    });
 
   const summary = {
     products: products.length,
@@ -436,7 +450,8 @@ export const GetSellerSummary = async (req: Request, res: Response) => {
     cartProducts:
       sellerProducts.filter((p) => p.orderGroup.status === "pending").length ||
       0,
-    totalEarnings: totalProductsPrice,
+    totalEarnings: totalDeliveredProductsPrice,
+    withdrawableEarnings: availableProductsPrice,
   };
 
   return res.status(200).json({
@@ -536,6 +551,40 @@ export const GetSellerSingleOrder = async (req: Request, res: Response) => {
         unit: el.product.unit,
         images: el.product.images,
       })),
+    },
+  });
+};
+
+export const GetSellerOrderSummary = async (req: Request, res: Response) => {
+  const user = req.user;
+
+  const orders = await prisma.orderGroup.findMany({
+    where: {
+      sellerId: user!.id,
+    },
+    include: {
+      _count: {
+        select: {
+          orderItems: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return res.status(200).json({
+    status: true,
+    message: "Seller order summary found successfully",
+    summary: {
+      orders: orders.length,
+      products: orders.reduce(
+        (acc, order) => (acc += order._count.orderItems),
+        0
+      ),
+      delivered: orders.filter((order) => order.status === "delivered").length,
+      rejected: orders.filter((order) => order.status === "rejected").length,
     },
   });
 };

@@ -256,6 +256,9 @@ export const GetSingleNotification = async (req: Request, res: Response) => {
           amount: foundNotif.order.totalAmount,
           deliveryRegion: foundNotif.order.deliveryRegion,
           deliveryAddress: foundNotif.order.deliveryAddress,
+          ...(foundNotif.orderGroup.logisticsCost && {
+            logisticsCost: foundNotif.orderGroup.logisticsCost,
+          }),
         },
         buyer: {
           id: foundNotif?.order.user?.id,
