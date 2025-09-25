@@ -17,7 +17,7 @@ export const errorHandler = (
 ) => {
   const statusCode = error.statusCode || 500;
 
-  console.log(error);
+  // console.log(error);
   // Return JSON error response
   res.status(statusCode).json({
     status: false,

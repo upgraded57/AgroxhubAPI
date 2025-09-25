@@ -564,6 +564,10 @@ export const GetSellerSingleOrder = async (req: Request, res: Response) => {
       deliveryDate: order.deliveryDate,
       status: order.status,
       createdAt: order.createdAt,
+      totalPrice: order.orderItems.reduce(
+        (acc, item) => (acc += item.totalPrice),
+        0
+      ),
       user: {
         name: order.order.user.name,
         avatar: order.order.user.avatar,
@@ -578,6 +582,7 @@ export const GetSellerSingleOrder = async (req: Request, res: Response) => {
         quantity: el.quantity,
         unit: el.product.unit,
         images: el.product.images,
+        totalPrice: el.totalPrice,
       })),
     },
   });
