@@ -179,7 +179,7 @@ export const CreateProduct = async (req: Request, res: Response) => {
 
 export const GetAllProducts = async (req: Request, res: Response) => {
   const {
-    currentPage = 0,
+    page = "1",
     q,
     minPrice,
     maxPrice,
@@ -189,12 +189,9 @@ export const GetAllProducts = async (req: Request, res: Response) => {
     category,
   } = req.query;
 
-  const perPage = 32;
+  const PER_PAGE = 32;
   // Subtracting 1 from current page because frontend index is 1 more than needed
-  const skipCount =
-    currentPage === 0
-      ? currentPage * perPage
-      : (parseInt(currentPage as string) - 1) * perPage;
+  const skipCount = PER_PAGE * (Number(page) - 1);
 
   const whereCondition: Prisma.ProductWhereInput = {
     name:
@@ -238,7 +235,7 @@ export const GetAllProducts = async (req: Request, res: Response) => {
   // Fetch the filtered products
   const products = await prisma.product.findMany({
     where: whereCondition, // Apply filters
-    take: perPage,
+    take: PER_PAGE,
     skip: skipCount,
     orderBy: { createdAt: "desc" },
   });
@@ -248,17 +245,21 @@ export const GetAllProducts = async (req: Request, res: Response) => {
     where: whereCondition, // Apply the same filters
   });
 
-  // Check if there are more products
-  const hasMore = skipCount + products.length < totalProducts;
-
   if (!products.length) throw new NotFoundException("No product found.");
+
+  const getPages = () => {
+    if (totalProducts < PER_PAGE) return 1;
+    return Math.ceil(totalProducts / PER_PAGE);
+  };
 
   res.json({
     status: true,
     message: "Products found successfully",
-    products,
-    hasMore,
     total: totalProducts,
+    pageSize: PER_PAGE,
+    page,
+    pages: getPages(),
+    products,
   });
 };
 

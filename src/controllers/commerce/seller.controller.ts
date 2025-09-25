@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient, userType } from "@prisma/client";
+import { OrderGroup, Prisma, PrismaClient, userType } from "@prisma/client";
 import { Request, Response } from "express";
 import { validateRequiredFields } from "../../functions/functions";
 import { NotFoundException } from "../../exceptions/not-found";
@@ -463,9 +463,24 @@ export const GetSellerSummary = async (req: Request, res: Response) => {
 
 export const GetSellerOrders = async (req: Request, res: Response) => {
   const user = req.user;
+  const { status, page = "1" } = req.query as {
+    status: OrderGroup["status"] | undefined;
+    page: string;
+  };
+  const PER_PAGE = 10;
+  const skipCount = PER_PAGE * (Number(page) - 1);
+
+  const allOrders = await prisma.orderGroup.count({
+    where: {
+      sellerId: user!.id,
+      status: status ?? undefined,
+    },
+  });
+
   const orders = await prisma.orderGroup.findMany({
     where: {
       sellerId: user!.id,
+      status: status ?? undefined,
     },
     include: {
       _count: {
@@ -477,11 +492,24 @@ export const GetSellerOrders = async (req: Request, res: Response) => {
     orderBy: {
       createdAt: "desc",
     },
+    take: PER_PAGE,
+    skip: skipCount,
   });
+
+  const getPages = () => {
+    if (allOrders < PER_PAGE) return 1;
+    return Math.ceil(allOrders / PER_PAGE);
+  };
+
+  // const pages =
 
   return res.status(200).json({
     status: true,
     message: "Orders found successfully",
+    total: allOrders,
+    pageSize: PER_PAGE,
+    page,
+    pages: getPages(),
     orders: orders.map((order) => ({
       id: order.id,
       status: order.status,
